@@ -12,7 +12,15 @@ import com.eduardo.rpg.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
+import com.eduardo.rpg.dto.user.CreateUserRequest;
+
 import java.util.List;
+
+import com.eduardo.rpg.dto.user.UserResponseDTO;
+
+import com.eduardo.rpg.exception.UserAlreadyExistsException;
+
+import com.eduardo.rpg.dto.user.UserMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -20,50 +28,65 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     //Cria o usuario
     @Transactional //Para garantir a integridade dos dados
-    public User createUser(User user) {
+    public UserResponseDTO createUser(CreateUserRequest dto) {
 
         //Verifica se o username já existe
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists!");
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            throw new UserAlreadyExistsException("Username " + dto.getUsername() + " already exists");
         }
 
         //Verifica se o email já existe
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already exists!");
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new UserAlreadyExistsException("Email " + dto.getEmail() + " already exists");
         }
 
+        //Converte o Request para a Entidade
+        User user = userMapper.toEntity(dto);
+    
         //Criptografa a senha
-        String encodedPassword = passwordEncoder.encode(user.getPassword()); //Troca a senha pelo hash 
-        user.setPassword(encodedPassword); //Salva a senha criptografada
-
-        //Define o role
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setRole(Role.PLAYER);
-
-        return userRepository.save(user);
+        
+        //Salva
+        User savedUser = userRepository.save(user);
+        
+        //Converte a Entidade para o DTO
+        return userMapper.toResponse(savedUser);
     }
 
     //Encontra o usuario pelo id
     @Transactional(readOnly = true) //Para garantir a integridade dos dados (para buscas)
-    public User findUserById(Long id) {
+    public UserResponseDTO findUserById(Long id) {
+        if(id == null){
+            throw new ResourceNotFoundException("Usuário nao encontrado!");
+        }
         return userRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
+                .map(userMapper::toResponse) 
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
     }
 
     //Encontra todos os usuarios
     @Transactional(readOnly = true) //Para garantir a integridade dos dados (para buscas)
-    public List<User> findAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponseDTO> findAllUsers() {
+        return userRepository.findAll()
+            .stream()
+            .map(userMapper::toResponse)
+            .toList();
     }
 
     //Deleta o usuario
     @Transactional
     public void deleteUser(Long id) {
-        User user = findUserById(id);
+        if(id == null){
+            throw new ResourceNotFoundException("Usuário nao encontrado!");
+        }
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
         userRepository.delete(user);
     }
-
 
 }

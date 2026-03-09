@@ -1,4 +1,4 @@
-package com.eduardo.rpg.dto;
+package com.eduardo.rpg.dto.user;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,7 +13,7 @@ import com.eduardo.rpg.enums.Role;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserDTO {
+public class UserResponseDTO {
     private Long id;
     private String username;
     private String email;
