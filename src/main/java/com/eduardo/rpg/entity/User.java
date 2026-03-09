@@ -30,7 +30,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @NoArgsConstructor //Cria o construtor vazio
 @AllArgsConstructor //Cria o construtor com todos os parâmetros
 @Entity //Cria a entidade que representa a tabela no banco
-@Table(name = "users") //define o nome da tabela
+@Table(name = "tb_users") //define o nome da tabela
 @EqualsAndHashCode(onlyExplicitlyIncluded = true) //Cria o equals e o hashCode, faz identificar pelo id
 public class User {
     @Id //define a chave primaria
@@ -54,7 +54,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING) //Configuração do enum (limita as opções) para string
-    @Column(name = "role", nullable=false)
+    @Column(name = "role", nullable=false, length = 20)
     private Role role;
 
     @Column(updatable=false, nullable=false)

@@ -2,11 +2,13 @@ package com.eduardo.rpg.exception;
 
 import java.time.LocalDateTime;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -49,4 +51,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
     
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrity(DataIntegrityViolationException ex, WebRequest request) {
+        String message = "Este usuário ou e-mail já está cadastrado no sistema.";
+        
+        // Aqui você usa o seu DTO de erro (ErrorDetails ou similar)
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            message,
+            "CONFLICT"
+        );
+        
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT); // Retorna 409
+    }
 }

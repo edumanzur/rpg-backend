@@ -1,41 +1,41 @@
-package com.eduardo.rpg.entity;
+// package com.eduardo.rpg.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import jakarta.persistence.GenerationType;
-import java.util.List;
-import java.time.LocalDateTime;
+// import lombok.Getter;
+// import lombok.Setter;
+// import jakarta.persistence.Entity;
+// import jakarta.persistence.GeneratedValue;
+// import jakarta.persistence.Id;
+// import lombok.AllArgsConstructor;
+// import lombok.NoArgsConstructor;
+// import jakarta.persistence.GenerationType;
+// import java.util.List;
+// import java.time.LocalDateTime;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Entity
-public class Character {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+// @Getter
+// @Setter
+// @NoArgsConstructor
+// @AllArgsConstructor
+// @Entity
+// public class Character {
+//     @Id
+//     @GeneratedValue(strategy = GenerationType.IDENTITY)
+//     private Long id;
 
-    private String name;
+//     private String name;
 
-    private String race;
+//     private String race;
 
-    private String classCharacter;
+//     private String classCharacter;
 
-    private Integer level;
+//     private Integer level;
 
-    private Campaign campaign;
+//     private Campaign campaign;
 
-    private User user;
+//     private User user;
 
-    private List<String> stats;
+//     private List<String> stats;
 
-    private LocalDateTime createdAt;
+//     private LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt;
-}
+//     private LocalDateTime updatedAt;
+// }
