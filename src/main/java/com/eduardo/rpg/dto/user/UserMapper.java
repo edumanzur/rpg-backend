@@ -10,14 +10,13 @@ public class UserMapper {
     public UserResponseDTO toResponse(User user) {
         if (user == null) return null;
 
-        UserResponseDTO response = new UserResponseDTO();
-        response.setId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setRole(user.getRole());
-        response.setCreatedAt(user.getCreatedAt());
-
-        return response;
+        return new UserResponseDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole(),
+                user.getCreatedAt()
+        );
     }
 
     // Converte o Request para a Entidade (para o createUser)
@@ -25,8 +24,8 @@ public class UserMapper {
         if (dto == null) return null;
 
         User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
+        user.setUsername(dto.username());
+        user.setEmail(dto.email());
         
         return user;
     }

@@ -35,20 +35,20 @@ public class UserService {
     public UserResponseDTO createUser(CreateUserRequest dto) {
 
         //Verifica se o username já existe
-        if (userRepository.existsByUsername(dto.getUsername())) {
-            throw new UserAlreadyExistsException("Username " + dto.getUsername() + " already exists");
+        if (userRepository.existsByUsername(dto.username())) {
+            throw new UserAlreadyExistsException("Username " + dto.username() + " already exists");
         }
 
         //Verifica se o email já existe
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new UserAlreadyExistsException("Email " + dto.getEmail() + " already exists");
+        if (userRepository.existsByEmail(dto.email())) {
+            throw new UserAlreadyExistsException("Email " + dto.email() + " already exists");
         }
 
         //Converte o Request para a Entidade
         User user = userMapper.toEntity(dto);
     
         //Criptografa a senha
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPassword(passwordEncoder.encode(dto.password()));
         user.setRole(Role.PLAYER);
         
         //Salva
