@@ -1,4 +1,4 @@
-package com.eduardo.rpg.dto.user;
+package com.eduardo.rpg.User.DTO;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

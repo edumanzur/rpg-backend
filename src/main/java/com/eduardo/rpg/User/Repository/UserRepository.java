@@ -1,9 +1,9 @@
-package com.eduardo.rpg.repository;
+package com.eduardo.rpg.User.Repository;
 
+import com.eduardo.rpg.User.Domains.User;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.eduardo.rpg.entity.User;
 import java.util.Optional;
 
 @Repository

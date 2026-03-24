@@ -1,8 +1,7 @@
-package com.eduardo.rpg.dto.user;
+package com.eduardo.rpg.User.DTO;
 
+import com.eduardo.rpg.User.Domains.User;
 import org.springframework.stereotype.Component;
-
-import com.eduardo.rpg.entity.User;
 
 @Component
 public class UserMapper {

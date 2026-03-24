@@ -1,15 +1,14 @@
-package com.eduardo.rpg.controller;
+package com.eduardo.rpg.User.Controller;
 
+import com.eduardo.rpg.User.DTO.CreateUserRequest;
+import com.eduardo.rpg.User.DTO.UserResponseDTO;
+import com.eduardo.rpg.User.Service.UserService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.eduardo.rpg.service.UserService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-
-import com.eduardo.rpg.dto.user.UserResponseDTO;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +16,6 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import com.eduardo.rpg.dto.user.CreateUserRequest;
 
 
 @RestController

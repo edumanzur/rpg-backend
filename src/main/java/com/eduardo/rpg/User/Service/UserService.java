@@ -1,26 +1,23 @@
-package com.eduardo.rpg.service;
+package com.eduardo.rpg.User.Service;
 
+import com.eduardo.rpg.User.DTO.CreateUserRequest;
+import com.eduardo.rpg.User.DTO.UserMapper;
+import com.eduardo.rpg.User.DTO.UserResponseDTO;
+import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.User.Repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.eduardo.rpg.repository.UserRepository;
-import com.eduardo.rpg.entity.User;
 import com.eduardo.rpg.enums.Role;
 
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
-import com.eduardo.rpg.dto.user.CreateUserRequest;
-
 import java.util.List;
 
-import com.eduardo.rpg.dto.user.UserResponseDTO;
-
 import com.eduardo.rpg.exception.UserAlreadyExistsException;
-
-import com.eduardo.rpg.dto.user.UserMapper;
 
 @Service
 @RequiredArgsConstructor

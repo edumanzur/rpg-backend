@@ -1,4 +1,4 @@
-package com.eduardo.rpg.dto.user;
+package com.eduardo.rpg.User.DTO;
 
 import java.time.LocalDateTime;
 

@@ -24,12 +24,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable) // Desabilita CSRF para o Postman funcionar
+            .csrf(AbstractHttpConfigurer::disable)
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)) // Libera o console do H2
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll() // Libera o Banco de Dados
                 .requestMatchers("/users/**").permitAll()      // Libera seus Endpoints de Usuário
-                .anyRequest().authenticated()                  // O resto continua protegido
+                .anyRequest().authenticated() // O resto continua protegido
             );
         
         return http.build();
