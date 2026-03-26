@@ -1,23 +1,26 @@
 package com.eduardo.rpg.User.Service;
 
-import com.eduardo.rpg.User.Domains.UserAuth;
-import com.eduardo.rpg.User.Repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.eduardo.rpg.User.DTO.AuthRequest;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
 
+@Service
+public class AuthService {
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-public class AuthService implements UserDetailsService {
-    private final UserRepository userRepository;
-
-    public AuthService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public AuthService(JwtService jwtService, AuthenticationManager authenticationManager) {
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .map(UserAuth::new)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+    public String authenticate(AuthRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.login(), request.password())
+        );
+
+        return jwtService.generateToken(authentication);
     }
 }

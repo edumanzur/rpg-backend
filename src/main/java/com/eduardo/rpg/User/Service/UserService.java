@@ -30,7 +30,7 @@ public class UserService {
     //Cria o usuario
     @Transactional //Para garantir a integridade dos dados
     public UserResponseDTO createUser(CreateUserRequest dto) {
-
+    
         //Verifica se o username já existe
         if (userRepository.existsByUsername(dto.username())) {
             throw new UserAlreadyExistsException("Username " + dto.username() + " already exists");
