@@ -32,5 +32,25 @@ build/
 ### VS Code ###
 .vscode/
 
+### Local secrets and env ###
+# JWT/SSL keys and keystores
+**/private.key
+**/public.key
+*.pem
+*.p12
+*.jks
+*.keystore
 
+# Local environment files
+.env
+.env.*
+!.env.example
 application-local.yml
+src/main/resources/application-local.yml
+src/test/resources/application-local.yml
+
+### Logs and OS files ###
+*.log
+logs/
+.DS_Store
+Thumbs.db
