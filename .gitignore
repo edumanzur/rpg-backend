@@ -32,10 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
-### Local secrets and env ###
+    ### Local secrets and env ###
 # JWT/SSL keys and keystores
-**/private.key
-**/public.key
+**/private.pem
+**/public.pem
 *.pem
 *.p12
 *.jks
