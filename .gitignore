@@ -32,6 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-private.key
-public.key
+src/main/resources/private.key
+src/main/resources/public.key
 application-local.yml
