@@ -34,8 +34,8 @@ build/
 
     ### Local secrets and env ###
 # JWT/SSL keys and keystores
-**/private.pem
-**/public.pem
+**/private.key
+**/public.key
 *.pem
 *.p12
 *.jks
