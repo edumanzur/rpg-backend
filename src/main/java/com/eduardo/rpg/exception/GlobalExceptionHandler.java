@@ -27,6 +27,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorDetails> handleResourceNotFound(ResourceNotFoundException ex) {
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            ex.getMessage(),
+            "NOT_FOUND"
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
     // Você pode ter outro para erros de validação (ex: campo vazio)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorDetails> handleValidation(MethodArgumentNotValidException ex) {
