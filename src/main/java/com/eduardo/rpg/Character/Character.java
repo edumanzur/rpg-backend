@@ -1,41 +1,72 @@
-// package com.eduardo.rpg.entity;
+package com.eduardo.rpg.Character;
 
-// import lombok.Getter;
-// import lombok.Setter;
-// import jakarta.persistence.Entity;
-// import jakarta.persistence.GeneratedValue;
-// import jakarta.persistence.Id;
-// import lombok.AllArgsConstructor;
-// import lombok.NoArgsConstructor;
-// import jakarta.persistence.GenerationType;
-// import java.util.List;
-// import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-// @Getter
-// @Setter
-// @NoArgsConstructor
-// @AllArgsConstructor
-// @Entity
-// public class Character {
-//     @Id
-//     @GeneratedValue(strategy = GenerationType.IDENTITY)
-//     private Long id;
+import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.Campaign.Campaign;
 
-//     private String name;
+import java.time.LocalDateTime;
 
-//     private String race;
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_characters")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class Character {
 
-//     private String classCharacter;
+    @Id
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-//     private Integer level;
+    @NotBlank
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
-//     private Campaign campaign;
+    @NotBlank
+    @Column(name = "race", nullable = false, length = 50)
+    private String race;
 
-//     private User user;
+    @NotBlank
+    @Column(name = "class_character", nullable = false, length = 50)
+    private String classCharacter;
 
-//     private List<String> stats;
+    @Min(value = 1)
+    @Column(name = "level", nullable = false)
+    private Integer level = 1;
 
-//     private LocalDateTime createdAt;
+    @Min(value = 1)
+    @Column(name = "experience", nullable = false)
+    private Integer experience = 0;
 
-//     private LocalDateTime updatedAt;
-// }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campaign_id", nullable = true)
+    private Campaign campaign;
+
+    @Column(name = "description", length = 500)
+    private String description;
+
+    @Column(updatable = false, nullable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+}
+

@@ -1,41 +1,52 @@
-// package com.eduardo.rpg.entity;
+package com.eduardo.rpg.Campaign;
 
-// import jakarta.persistence.Entity;
-// import jakarta.persistence.Id;
-// import lombok.AllArgsConstructor;
-// import lombok.Getter;
-// import lombok.Setter;
-// import lombok.NoArgsConstructor;
-// import jakarta.persistence.GeneratedValue;
-// import jakarta.persistence.GenerationType;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-// import java.time.LocalDateTime;
-// import java.util.List;
+import com.eduardo.rpg.User.Domains.User;
+import java.time.LocalDateTime;
+import java.util.List;
 
-// @Getter
-// @Setter
-// @NoArgsConstructor
-// @AllArgsConstructor
-// @Entity
-// public class Campaign {
-//     @Id
-//     @GeneratedValue(strategy = GenerationType.IDENTITY)
-//     private Long id;
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "tb_campaigns")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class Campaign {
 
-//     private String name;
+    @Id
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-//     private String description;
+    @NotBlank
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
-//     //Mestre da campanha
-//     private User master;
+    @Column(name = "description", length = 500)
+    private String description;
 
-//     //Lista de jogadores
-//     private List<User> players;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "master_id", nullable = false)
+    private User master;
 
-//     private LocalDateTime createdAt;
+    @Column(name = "status", nullable = false)
+    private Boolean status = true;
 
-//     private LocalDateTime updatedAt;
+    @Column(updatable = false, nullable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
-//     //Status da campanha (Ativa ou não ativa)
-//     private Boolean status;
-// }
+    @Column(nullable = false)
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+}

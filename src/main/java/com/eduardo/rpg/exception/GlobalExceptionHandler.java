@@ -37,6 +37,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDetails> handleIllegalArgument(IllegalArgumentException ex) {
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            ex.getMessage(),
+            "CONFLICT"
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
     // Você pode ter outro para erros de validação (ex: campo vazio)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorDetails> handleValidation(MethodArgumentNotValidException ex) {
