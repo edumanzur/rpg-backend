@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -58,18 +60,19 @@ class SessionControllerTest {
     @WithMockUser(username = "masteruser", roles = "MASTER")
     @DisplayName("GET /sessions should return all sessions for master")
     void testFindAllSessionsSuccess() throws Exception {
-        when(sessionService.findAllSessions(any())).thenReturn(List.of(sessionResponseDTO));
+        when(sessionService.findAllSessions(any(), eq(PageRequest.of(0, 10))))
+            .thenReturn(new PageImpl<>(List.of(sessionResponseDTO)));
 
-        mockMvc.perform(get("/sessions").contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/sessions?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(1)));
+            .andExpect(jsonPath("$.content", hasSize(1)));
     }
 
     @Test
     @WithMockUser(username = "playeruser", roles = "PLAYER")
     @DisplayName("GET /sessions should deny access to player")
     void testFindAllSessionsPlayerDenied() throws Exception {
-        mockMvc.perform(get("/sessions").contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/sessions?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
 

@@ -8,14 +8,14 @@ import com.eduardo.rpg.User.Repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.eduardo.rpg.enums.Role;
 
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
 
 import com.eduardo.rpg.exception.UserAlreadyExistsException;
 
@@ -68,11 +68,9 @@ public class UserService {
 
     //Encontra todos os usuarios
     @Transactional(readOnly = true) //Para garantir a integridade dos dados (para buscas)
-    public List<UserResponseDTO> findAllUsers() {
-        return userRepository.findAll()
-            .stream()
-            .map(userMapper::toResponse)
-            .toList();
+    public Page<UserResponseDTO> findAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+            .map(userMapper::toResponse);
     }
 
     //Deleta o usuario

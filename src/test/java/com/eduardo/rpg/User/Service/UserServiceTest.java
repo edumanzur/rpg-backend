@@ -12,7 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.eduardo.rpg.User.DTO.CreateUserRequest;
@@ -25,6 +29,7 @@ import com.eduardo.rpg.exception.ResourceNotFoundException;
 import com.eduardo.rpg.exception.UserAlreadyExistsException;
 
 @DisplayName("UserService Unit Tests")
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
@@ -45,8 +50,6 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
         createUserRequest = new CreateUserRequest("testuser", "test@example.com", "password123");
         user = new User(1L, "testuser", "test@example.com", "encoded_password", Role.PLAYER, null, null);
         userResponseDTO = new UserResponseDTO(1L, "testuser", "test@example.com", Role.PLAYER, null);
@@ -123,22 +126,22 @@ class UserServiceTest {
         User user2 = new User(2L, "testuser2", "test2@example.com", "encoded_password", Role.PLAYER, null, null);
         UserResponseDTO userResponseDTO2 = new UserResponseDTO(2L, "testuser2", "test2@example.com", Role.PLAYER, null);
 
-        when(userRepository.findAll()).thenReturn(List.of(user, user2));
+        when(userRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(user, user2)));
         when(userMapper.toResponse(user)).thenReturn(userResponseDTO);
         when(userMapper.toResponse(user2)).thenReturn(userResponseDTO2);
 
-        List<UserResponseDTO> result = userService.findAllUsers();
+        Page<UserResponseDTO> result = userService.findAllUsers(PageRequest.of(0, 10));
 
-        assertEquals(2, result.size());
-        verify(userRepository, times(1)).findAll();
+        assertEquals(2, result.getTotalElements());
+        verify(userRepository, times(1)).findAll(PageRequest.of(0, 10));
     }
 
     @Test
     @DisplayName("Should return empty list when no users found")
     void testFindAllUsersEmpty() {
-        when(userRepository.findAll()).thenReturn(List.of());
+        when(userRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of()));
 
-        List<UserResponseDTO> result = userService.findAllUsers();
+        Page<UserResponseDTO> result = userService.findAllUsers(PageRequest.of(0, 10));
 
         assertTrue(result.isEmpty());
     }

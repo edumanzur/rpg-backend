@@ -3,12 +3,12 @@ package com.eduardo.rpg.exception;
 import java.time.LocalDateTime;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,10 +44,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorDetails> handleAccessDenied(AccessDeniedException ex) {
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            ex.getMessage(),
+            "FORBIDDEN"
+        );
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
     // Exceções do Spring Data (específicas de integridade)
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorDetails> handleDataIntegrity(DataIntegrityViolationException ex, WebRequest request) {
-        String message = "Este usuário ou e-mail já está cadastrado no sistema.";
+    public ResponseEntity<ErrorDetails> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String message = ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null
+            ? ex.getMostSpecificCause().getMessage()
+            : "Este usuário ou e-mail já está cadastrado no sistema.";
 
         ErrorDetails error = new ErrorDetails(
             LocalDateTime.now(),
@@ -75,7 +87,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorDetails> handleAllExceptions(Exception ex) {
         ErrorDetails error = new ErrorDetails(
             LocalDateTime.now(), 
-            "Ocorreu um erro interno inesperado.", 
+            ex.getMessage() != null ? ex.getMessage() : "Ocorreu um erro interno inesperado.", 
             "INTERNAL_SERVER_ERROR"
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);

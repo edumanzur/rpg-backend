@@ -8,16 +8,24 @@ import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
+import com.eduardo.rpg.Race.Repository.RaceRepository;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.enums.CharacterRole;
-import com.eduardo.rpg.enums.Role;
+import com.eduardo.rpg.Race.Race;
+import com.eduardo.rpg.CharacterClass.CharacterClass;
+import com.eduardo.rpg.security.AccessControlService;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -26,45 +34,61 @@ public class CharacterService {
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
     private final CampaignRepository campaignRepository;
+    private final CharacterClassRepository characterClassRepository;
+    private final RaceRepository raceRepository;
     private final CharacterMapper characterMapper;
+    private final AccessControlService accessControlService;
 
     @Transactional
-    public CharacterResponseDTO createCharacter(Long userId, CreateCharacterRequest dto) {
+    public CharacterResponseDTO createCharacter(Authentication authentication, Long userId, CreateCharacterRequest dto) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
 
+        accessControlService.requireCharacterCreationPermission(authUser, userId, dto.role());
+
         Campaign campaign = campaignRepository.findById(dto.campaignId())
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+
+        Race race = raceRepository.findById(dto.raceId())
+            .orElseThrow(() -> new ResourceNotFoundException("Raça não encontrada!"));
+
+        CharacterClass characterClass = characterClassRepository.findById(dto.classId())
+            .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
 
         if (characterRepository.existsByNameAndUserId(dto.name(), userId)) {
             throw new IllegalArgumentException("Já existe um personagem com este nome para este usuário");
         }
 
-        if (user.getRole() == Role.PLAYER && dto.role() == CharacterRole.MONSTER) {
-            throw new IllegalArgumentException("Player não pode criar monstro");
-        }
-
-        if (user.getRole() == Role.PLAYER && characterRepository.existsByUserIdAndCampaignIdAndRole(userId, dto.campaignId(), CharacterRole.PLAYER)) {
+        if (user.getRole() == com.eduardo.rpg.enums.Role.PLAYER && dto.role() == CharacterRole.PLAYER
+            && characterRepository.existsByUserIdAndCampaignIdAndRole(userId, dto.campaignId(), CharacterRole.PLAYER)) {
             throw new IllegalArgumentException("Player já possui personagem nesta campanha");
         }
 
         Character character = characterMapper.toEntity(dto);
         character.setUser(user);
         character.setCampaign(campaign);
+        character.setRace(race);
+        character.setCharacterClass(characterClass);
 
         Character savedCharacter = characterRepository.save(character);
         return characterMapper.toResponse(savedCharacter);
     }
 
     @Transactional(readOnly = true)
-    public CharacterResponseDTO findCharacterById(Long id) {
+    public CharacterResponseDTO findCharacterById(Authentication authentication, Long id) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Character character = characterRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
+        accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
         return characterMapper.toResponse(character);
     }
 
     @Transactional(readOnly = true)
-    public List<CharacterResponseDTO> findCharactersByUserId(Long userId) {
+    public List<CharacterResponseDTO> findCharactersByUserId(Authentication authentication, Long userId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireSameUserOrAdmin(authUser, userId);
+
         userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
 
@@ -75,9 +99,11 @@ public class CharacterService {
     }
 
     @Transactional(readOnly = true)
-    public List<CharacterResponseDTO> findCharactersByCampaignId(Long campaignId) {
-        campaignRepository.findById(campaignId)
+    public List<CharacterResponseDTO> findCharactersByCampaignId(Authentication authentication, Long campaignId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Campaign campaign = campaignRepository.findById(campaignId)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
 
         return characterRepository.findByCampaignId(campaignId)
             .stream()
@@ -86,36 +112,49 @@ public class CharacterService {
     }
 
     @Transactional(readOnly = true)
-    public List<CharacterResponseDTO> findAllCharacters() {
-        return characterRepository.findAll()
-            .stream()
-            .map(characterMapper::toResponse)
-            .toList();
+    public Page<CharacterResponseDTO> findAllCharacters(Authentication authentication, Pageable pageable) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+
+        return characterRepository.findAll(pageable)
+            .map(characterMapper::toResponse);
     }
 
     @Transactional
-    public CharacterResponseDTO updateCharacter(Long id, UpdateCharacterRequest dto) {
+    public CharacterResponseDTO updateCharacter(Authentication authentication, Long id, UpdateCharacterRequest dto) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Character character = characterRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
+        accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
 
         Campaign campaign = campaignRepository.findById(dto.campaignId())
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
 
-        if (character.getUser().getRole() == Role.PLAYER && dto.role() == CharacterRole.MONSTER) {
-            throw new IllegalArgumentException("Player não pode criar monstro");
+        Race race = raceRepository.findById(dto.raceId())
+            .orElseThrow(() -> new ResourceNotFoundException("Raça não encontrada!"));
+
+        CharacterClass characterClass = characterClassRepository.findById(dto.classId())
+            .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
+
+        if (character.getUser().getRole() == com.eduardo.rpg.enums.Role.PLAYER && dto.role() == CharacterRole.MONSTER) {
+            throw new AccessDeniedException("Player não pode criar monstro");
         }
 
         character = characterMapper.toEntity(dto, character);
         character.setCampaign(campaign);
+        character.setRace(race);
+        character.setCharacterClass(characterClass);
         Character updatedCharacter = characterRepository.save(character);
 
         return characterMapper.toResponse(updatedCharacter);
     }
 
     @Transactional
-    public void deleteCharacter(Long id) {
+    public void deleteCharacter(Authentication authentication, Long id) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Character character = characterRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
+        accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
         characterRepository.delete(character);
     }
 }

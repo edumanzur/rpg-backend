@@ -5,8 +5,11 @@ import com.eduardo.rpg.Character.DTO.CreateCharacterRequest;
 import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Service.CharacterService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,48 +25,50 @@ public class CharacterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CharacterResponseDTO> findCharacterById(@PathVariable Long id) {
-        CharacterResponseDTO response = characterService.findCharacterById(id);
+    public ResponseEntity<CharacterResponseDTO> findCharacterById(Authentication authentication, @PathVariable Long id) {
+        CharacterResponseDTO response = characterService.findCharacterById(authentication, id);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<CharacterResponseDTO>> findAllCharacters() {
-        List<CharacterResponseDTO> response = characterService.findAllCharacters();
+    public ResponseEntity<Page<CharacterResponseDTO>> findAllCharacters(Authentication authentication, Pageable pageable) {
+        Page<CharacterResponseDTO> response = characterService.findAllCharacters(authentication, pageable);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CharacterResponseDTO>> findCharactersByUserId(@PathVariable Long userId) {
-        List<CharacterResponseDTO> response = characterService.findCharactersByUserId(userId);
+    public ResponseEntity<List<CharacterResponseDTO>> findCharactersByUserId(Authentication authentication, @PathVariable Long userId) {
+        List<CharacterResponseDTO> response = characterService.findCharactersByUserId(authentication, userId);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/campaign/{campaignId}")
-    public ResponseEntity<List<CharacterResponseDTO>> findCharactersByCampaignId(@PathVariable Long campaignId) {
-        List<CharacterResponseDTO> response = characterService.findCharactersByCampaignId(campaignId);
+    public ResponseEntity<List<CharacterResponseDTO>> findCharactersByCampaignId(Authentication authentication, @PathVariable Long campaignId) {
+        List<CharacterResponseDTO> response = characterService.findCharactersByCampaignId(authentication, campaignId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/user/{userId}")
     public ResponseEntity<CharacterResponseDTO> createCharacter(
+        Authentication authentication,
         @PathVariable Long userId,
         @RequestBody @Valid CreateCharacterRequest dto) {
-        CharacterResponseDTO response = characterService.createCharacter(userId, dto);
+        CharacterResponseDTO response = characterService.createCharacter(authentication, userId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CharacterResponseDTO> updateCharacter(
+        Authentication authentication,
         @PathVariable Long id,
         @RequestBody @Valid UpdateCharacterRequest dto) {
-        CharacterResponseDTO response = characterService.updateCharacter(id, dto);
+        CharacterResponseDTO response = characterService.updateCharacter(authentication, id, dto);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCharacter(@PathVariable Long id) {
-        characterService.deleteCharacter(id);
+    public ResponseEntity<Void> deleteCharacter(Authentication authentication, @PathVariable Long id) {
+        characterService.deleteCharacter(authentication, id);
         return ResponseEntity.noContent().build();
     }
 }

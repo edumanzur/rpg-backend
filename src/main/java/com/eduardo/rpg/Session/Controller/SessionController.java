@@ -5,6 +5,8 @@ import com.eduardo.rpg.Session.DTO.SessionResponseDTO;
 import com.eduardo.rpg.Session.DTO.UpdateSessionRequest;
 import com.eduardo.rpg.Session.Service.SessionService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,8 +31,8 @@ public class SessionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SessionResponseDTO>> findAllSessions(Authentication authentication) {
-        List<SessionResponseDTO> response = sessionService.findAllSessions(authentication);
+    public ResponseEntity<Page<SessionResponseDTO>> findAllSessions(Authentication authentication, Pageable pageable) {
+        Page<SessionResponseDTO> response = sessionService.findAllSessions(authentication, pageable);
         return ResponseEntity.ok(response);
     }
 

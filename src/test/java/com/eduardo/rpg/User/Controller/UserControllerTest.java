@@ -14,9 +14,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.eduardo.rpg.User.DTO.UserResponseDTO;
 import com.eduardo.rpg.User.Service.UserService;
@@ -32,11 +34,8 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private UserResponseDTO userResponseDTO;
 
@@ -78,29 +77,29 @@ class UserControllerTest {
     @DisplayName("GET /users should return all users")
     void testFindAllUsersSuccess() throws Exception {
         UserResponseDTO user2 = new UserResponseDTO(2L, "testuser2", "test2@example.com", Role.PLAYER, null);
-        when(userService.findAllUsers()).thenReturn(List.of(userResponseDTO, user2));
+        when(userService.findAllUsers(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(userResponseDTO, user2)));
 
-        mockMvc.perform(get("/users")
+        mockMvc.perform(get("/users?page=0&size=10")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(2)))
-            .andExpect(jsonPath("$[0].id", is(1)))
-            .andExpect(jsonPath("$[0].username", is("testuser")))
-            .andExpect(jsonPath("$[1].id", is(2)))
-            .andExpect(jsonPath("$[1].username", is("testuser2")));
+            .andExpect(jsonPath("$.content", hasSize(2)))
+            .andExpect(jsonPath("$.content[0].id", is(1)))
+            .andExpect(jsonPath("$.content[0].username", is("testuser")))
+            .andExpect(jsonPath("$.content[1].id", is(2)))
+            .andExpect(jsonPath("$.content[1].username", is("testuser2")));
 
-        verify(userService, times(1)).findAllUsers();
+        verify(userService, times(1)).findAllUsers(PageRequest.of(0, 10));
     }
 
     @Test
     @DisplayName("GET /users should return empty list when no users exist")
     void testFindAllUsersEmpty() throws Exception {
-        when(userService.findAllUsers()).thenReturn(List.of());
+        when(userService.findAllUsers(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of()));
 
-        mockMvc.perform(get("/users")
+        mockMvc.perform(get("/users?page=0&size=10")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(0)));
+            .andExpect(jsonPath("$.content", hasSize(0)));
     }
 
     @Test

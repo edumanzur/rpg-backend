@@ -3,7 +3,6 @@ package com.eduardo.rpg.Session;
 import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Character.Character;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -30,11 +29,9 @@ public class Session {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Column(name = "title", nullable = false, length = 120)
     private String title;
 
-    @NotBlank
     @Column(name = "story", nullable = false, length = 2000)
     private String story;
 

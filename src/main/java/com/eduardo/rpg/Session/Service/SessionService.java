@@ -10,11 +10,11 @@ import com.eduardo.rpg.Session.DTO.SessionResponseDTO;
 import com.eduardo.rpg.Session.DTO.UpdateSessionRequest;
 import com.eduardo.rpg.Session.Repository.SessionRepository;
 import com.eduardo.rpg.Session.Session;
-import com.eduardo.rpg.User.Domains.User;
-import com.eduardo.rpg.User.Repository.UserRepository;
-import com.eduardo.rpg.enums.Role;
+import com.eduardo.rpg.security.AccessControlService;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,13 +31,13 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final CampaignRepository campaignRepository;
     private final CharacterRepository characterRepository;
-    private final UserRepository userRepository;
     private final SessionMapper sessionMapper;
+    private final AccessControlService accessControlService;
 
     @Transactional
     public SessionResponseDTO createSession(Authentication authentication, CreateSessionRequest dto) {
-        User master = authenticatedMaster(authentication);
-        Campaign campaign = getMasterCampaign(master, dto.campaignId());
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        Campaign campaign = getMasterCampaign(authUser, dto.campaignId());
 
         if (sessionRepository.existsByTitleAndCampaignId(dto.title(), campaign.getId())) {
             throw new IllegalArgumentException("Já existe uma sessão com este título nesta campanha");
@@ -53,18 +53,18 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public SessionResponseDTO findSessionById(Authentication authentication, Long id) {
-        User master = authenticatedMaster(authentication);
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         Session session = sessionRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Sessão não encontrada!"));
 
-        ensureMasterOwnsCampaign(master, session.getCampaign());
+        ensureMasterOwnsCampaign(authUser, session.getCampaign());
         return sessionMapper.toResponse(session);
     }
 
     @Transactional(readOnly = true)
     public List<SessionResponseDTO> findSessionsByCampaignId(Authentication authentication, Long campaignId) {
-        User master = authenticatedMaster(authentication);
-        Campaign campaign = getMasterCampaign(master, campaignId);
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        Campaign campaign = getMasterCampaign(authUser, campaignId);
 
         return sessionRepository.findByCampaignId(campaign.getId())
             .stream()
@@ -73,23 +73,23 @@ public class SessionService {
     }
 
     @Transactional(readOnly = true)
-    public List<SessionResponseDTO> findAllSessions(Authentication authentication) {
-        authenticatedMaster(authentication);
-        return sessionRepository.findAll()
-            .stream()
-            .map(sessionMapper::toResponse)
-            .toList();
+    public Page<SessionResponseDTO> findAllSessions(Authentication authentication, Pageable pageable) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+
+        return sessionRepository.findAll(pageable)
+            .map(sessionMapper::toResponse);
     }
 
     @Transactional
     public SessionResponseDTO updateSession(Authentication authentication, Long id, UpdateSessionRequest dto) {
-        User master = authenticatedMaster(authentication);
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         Session session = sessionRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Sessão não encontrada!"));
 
-        ensureMasterOwnsCampaign(master, session.getCampaign());
+        ensureMasterOwnsCampaign(authUser, session.getCampaign());
 
-        Campaign campaign = getMasterCampaign(master, dto.campaignId());
+        Campaign campaign = getMasterCampaign(authUser, dto.campaignId());
         if (sessionRepository.existsByTitleAndCampaignIdAndIdNot(dto.title(), campaign.getId(), id)) {
             throw new IllegalArgumentException("Já existe uma sessão com este título nesta campanha");
         }
@@ -104,44 +104,25 @@ public class SessionService {
 
     @Transactional
     public void deleteSession(Authentication authentication, Long id) {
-        User master = authenticatedMaster(authentication);
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         Session session = sessionRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Sessão não encontrada!"));
 
-        ensureMasterOwnsCampaign(master, session.getCampaign());
+        ensureMasterOwnsCampaign(authUser, session.getCampaign());
         sessionRepository.delete(session);
     }
 
-    private User authenticatedMaster(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalArgumentException("Acesso não autenticado");
-        }
-
-        User user = userRepository.findByUsername(authentication.getName())
-            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
-
-        if (user.getRole() != Role.MASTER) {
-            throw new IllegalArgumentException("Somente o mestre pode acessar sessões");
-        }
-
-        return user;
-    }
-
-    private Campaign getMasterCampaign(User master, Long campaignId) {
+    private Campaign getMasterCampaign(com.eduardo.rpg.User.Domains.User master, Long campaignId) {
         Campaign campaign = campaignRepository.findById(campaignId)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
 
-        if (campaign.getMaster() == null || !campaign.getMaster().getId().equals(master.getId())) {
-            throw new IllegalArgumentException("Somente o mestre dono da campanha pode gerenciar sessões");
-        }
+        accessControlService.requireCampaignOwnerOrAdmin(master, campaign);
 
         return campaign;
     }
 
-    private void ensureMasterOwnsCampaign(User master, Campaign campaign) {
-        if (campaign == null || campaign.getMaster() == null || !campaign.getMaster().getId().equals(master.getId())) {
-            throw new IllegalArgumentException("Somente o mestre dono da campanha pode gerenciar sessões");
-        }
+    private void ensureMasterOwnsCampaign(com.eduardo.rpg.User.Domains.User master, Campaign campaign) {
+        accessControlService.requireCampaignOwnerOrAdmin(master, campaign);
     }
 
     private List<Character> resolveCharactersForCampaign(List<Long> characterIds, Long campaignId) {

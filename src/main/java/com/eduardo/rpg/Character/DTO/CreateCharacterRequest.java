@@ -5,20 +5,24 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import com.eduardo.rpg.enums.CharacterRole;
+import com.eduardo.rpg.enums.Gender;
 
 public record CreateCharacterRequest(
 
     @NotBlank(message = "Character name is required")
     String name,
 
-    @NotBlank(message = "Race is required")
-    String race,
+    @NotNull(message = "Race is required")
+    Long raceId,
 
-    @NotBlank(message = "Class is required")
-    String classCharacter,
+    @NotNull(message = "Class is required")
+    Long classId,
 
     @NotNull(message = "Character role is required")
     CharacterRole role,
+
+    @NotNull(message = "Gender is required")
+    Gender gender,
 
     @NotNull(message = "Campaign is required")
     Long campaignId,

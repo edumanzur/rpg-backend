@@ -1,8 +1,6 @@
 package com.eduardo.rpg.Character;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Min;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -13,7 +11,11 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.Race.Race;
+import com.eduardo.rpg.CharacterClass.CharacterClass;
+import com.eduardo.rpg.enums.Gender;
 import com.eduardo.rpg.enums.CharacterRole;
+import com.eduardo.rpg.Equipment.Equipment;
 
 import java.time.LocalDateTime;
 
@@ -31,27 +33,44 @@ public class Character {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @NotBlank
-    @Column(name = "race", nullable = false, length = 50)
-    private String race;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "race_id", nullable = false)
+    private Race race;
 
-    @NotBlank
-    @Column(name = "class_character", nullable = false, length = 50)
-    private String classCharacter;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false, length = 30)
+    private Gender gender = Gender.UNSPECIFIED;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id", nullable = false)
+    private CharacterClass characterClass;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "tb_character_equipments",
+        joinColumns = @JoinColumn(name = "character_id"),
+        inverseJoinColumns = @JoinColumn(name = "equipment_id")
+    )
+    private java.util.List<Equipment> equipments = new java.util.ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "tb_character_abilities",
+        joinColumns = @JoinColumn(name = "character_id"),
+        inverseJoinColumns = @JoinColumn(name = "ability_id")
+    )
+    private java.util.List<com.eduardo.rpg.AbilitySpell.AbilitySpell> abilities = new java.util.ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "character_role", nullable = false, length = 20)
     private CharacterRole role = CharacterRole.PLAYER;
 
-    @Min(value = 1)
     @Column(name = "level", nullable = false)
     private Integer level = 1;
 
-    @Min(value = 1)
     @Column(name = "experience", nullable = false)
     private Integer experience = 0;
 

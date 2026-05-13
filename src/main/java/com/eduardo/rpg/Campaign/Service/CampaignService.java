@@ -8,14 +8,15 @@ import com.eduardo.rpg.Campaign.DTO.UpdateCampaignRequest;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.User.Repository.UserRepository;
-import com.eduardo.rpg.enums.Role;
+import com.eduardo.rpg.security.AccessControlService;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
@@ -23,15 +24,18 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserRepository userRepository;
     private final CampaignMapper campaignMapper;
+    private final AccessControlService accessControlService;
 
     @Transactional
-    public CampaignResponseDTO createCampaign(Long masterId, CreateCampaignRequest dto) {
+    public CampaignResponseDTO createCampaign(Authentication authentication, Long masterId, CreateCampaignRequest dto) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+        if (!accessControlService.isAdmin(authUser)) {
+            accessControlService.requireSameUserOrAdmin(authUser, masterId);
+        }
+
         User master = userRepository.findById(masterId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
-
-        if (master.getRole() != Role.MASTER && master.getRole() != Role.ADMIN) {
-            throw new IllegalArgumentException("Somente MASTER ou ADMIN podem ser mestres de campanha");
-        }
 
         if (campaignRepository.existsByNameAndMasterId(dto.name(), masterId)) {
             throw new IllegalArgumentException("Já existe uma campanha com este nome para este mestre");
@@ -45,35 +49,46 @@ public class CampaignService {
     }
 
     @Transactional(readOnly = true)
-    public CampaignResponseDTO findCampaignById(Long id) {
+    public CampaignResponseDTO findCampaignById(Authentication authentication, Long id) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = campaignRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
         return campaignMapper.toResponse(campaign);
     }
 
     @Transactional(readOnly = true)
-    public List<CampaignResponseDTO> findCampaignsByMasterId(Long masterId) {
+    public java.util.List<CampaignResponseDTO> findCampaignsByMasterId(Authentication authentication, Long masterId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+        if (!accessControlService.isAdmin(authUser)) {
+            accessControlService.requireSameUserOrAdmin(authUser, masterId);
+        }
+
         userRepository.findById(masterId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
 
         return campaignRepository.findByMasterId(masterId)
             .stream()
             .map(campaignMapper::toResponse)
-            .toList();
+            .collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<CampaignResponseDTO> findAllCampaigns() {
-        return campaignRepository.findAll()
-            .stream()
-            .map(campaignMapper::toResponse)
-            .toList();
+    public Page<CampaignResponseDTO> findAllCampaigns(Authentication authentication, Pageable pageable) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+
+        return campaignRepository.findAll(pageable)
+            .map(campaignMapper::toResponse);
     }
 
     @Transactional
-    public CampaignResponseDTO updateCampaign(Long id, UpdateCampaignRequest dto) {
+    public CampaignResponseDTO updateCampaign(Authentication authentication, Long id, UpdateCampaignRequest dto) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = campaignRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
 
         if (campaignRepository.existsByNameAndMasterIdAndIdNot(dto.name(), campaign.getMaster().getId(), id)) {
             throw new IllegalArgumentException("Já existe uma campanha com este nome para este mestre");
@@ -86,9 +101,11 @@ public class CampaignService {
     }
 
     @Transactional
-    public void deleteCampaign(Long id) {
+    public void deleteCampaign(Authentication authentication, Long id) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = campaignRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
         campaignRepository.delete(campaign);
     }
 }

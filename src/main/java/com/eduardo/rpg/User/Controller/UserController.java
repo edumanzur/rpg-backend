@@ -13,9 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 
 @RestController
@@ -37,8 +38,8 @@ public class UserController {
     
     //Encontra todos os usuarios
     @GetMapping
-    public ResponseEntity<List<UserResponseDTO>> findAllUsers() {
-        List<UserResponseDTO> response = userService.findAllUsers();
+    public ResponseEntity<Page<UserResponseDTO>> findAllUsers(Pageable pageable) {
+        Page<UserResponseDTO> response = userService.findAllUsers(pageable);
         return ResponseEntity.ok(response);
     }
     

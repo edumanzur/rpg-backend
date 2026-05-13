@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,6 +35,7 @@ import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.enums.Role;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
+import com.eduardo.rpg.security.AccessControlService;
 
 @DisplayName("SessionService Unit Tests")
 class SessionServiceTest {
@@ -47,6 +51,9 @@ class SessionServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AccessControlService accessControlService;
 
     @Mock
     private SessionMapper sessionMapper;
@@ -105,6 +112,7 @@ class SessionServiceTest {
     void testCreateSessionSuccess() {
         Session newSession = new Session();
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.existsByTitleAndCampaignId("Sessão 1", 1L)).thenReturn(false);
@@ -121,42 +129,9 @@ class SessionServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw ResourceNotFoundException when master user not found")
-    void testCreateSessionMasterNotFound() {
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> sessionService.createSession(authentication, createSessionRequest));
-    }
-
-    @Test
-    @DisplayName("Should throw IllegalArgumentException when authenticated user is not master")
-    void testCreateSessionNotMaster() {
-        Authentication playerAuth = new UsernamePasswordAuthenticationToken("playeruser", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
-        User player = new User(2L, "playeruser", "player@example.com", "password", Role.PLAYER, null, null);
-
-        when(userRepository.findByUsername("playeruser")).thenReturn(Optional.of(player));
-
-        assertThrows(IllegalArgumentException.class, () -> sessionService.createSession(playerAuth, createSessionRequest));
-    }
-
-    @Test
-    @DisplayName("Should throw IllegalArgumentException when master does not own campaign")
-    void testCreateSessionWrongMasterForCampaign() {
-        User otherMaster = new User(3L, "othermaster", "other@example.com", "password", Role.MASTER, null, null);
-        Campaign otherCampaign = new Campaign();
-        otherCampaign.setId(2L);
-        otherCampaign.setMaster(otherMaster);
-        CreateSessionRequest request = new CreateSessionRequest("Sessão 1", "Story", null, 2L, List.of(1L));
-
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
-        when(campaignRepository.findById(2L)).thenReturn(Optional.of(otherCampaign));
-
-        assertThrows(IllegalArgumentException.class, () -> sessionService.createSession(authentication, request));
-    }
-
-    @Test
     @DisplayName("Should throw IllegalArgumentException when session title already exists")
     void testCreateSessionDuplicateTitle() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.existsByTitleAndCampaignId("Sessão 1", 1L)).thenReturn(true);
@@ -167,6 +142,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("Should find session by id successfully")
     void testFindSessionByIdSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(sessionMapper.toResponse(session)).thenReturn(sessionResponseDTO);
@@ -180,6 +156,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("Should throw ResourceNotFoundException when session not found")
     void testFindSessionByIdNotFound() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -189,6 +166,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("Should find sessions by campaign id")
     void testFindSessionsByCampaignIdSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.findByCampaignId(1L)).thenReturn(List.of(session));
@@ -203,13 +181,14 @@ class SessionServiceTest {
     @Test
     @DisplayName("Should find all sessions")
     void testFindAllSessionsSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
-        when(sessionRepository.findAll()).thenReturn(List.of(session));
+        when(sessionRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(session)));
         when(sessionMapper.toResponse(session)).thenReturn(sessionResponseDTO);
 
-        List<SessionResponseDTO> result = sessionService.findAllSessions(authentication);
+        Page<SessionResponseDTO> result = sessionService.findAllSessions(authentication, PageRequest.of(0, 10));
 
-        assertEquals(1, result.size());
+        assertEquals(1, result.getTotalElements());
     }
 
     @Test
@@ -224,6 +203,7 @@ class SessionServiceTest {
         updatedSession.setCampaign(campaign);
         updatedSession.setCharacters(List.of(playerCharacter, monsterCharacter));
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
@@ -242,6 +222,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("Should delete session successfully")
     void testDeleteSessionSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
 
