@@ -14,6 +14,7 @@ public class CharacterMapper {
             character.getName(),
             character.getRace(),
             character.getClassCharacter(),
+            character.getRole(),
             character.getLevel(),
             character.getExperience(),
             character.getDescription(),
@@ -31,6 +32,7 @@ public class CharacterMapper {
         character.setName(dto.name());
         character.setRace(dto.race());
         character.setClassCharacter(dto.classCharacter());
+        character.setRole(dto.role() != null ? dto.role() : com.eduardo.rpg.enums.CharacterRole.PLAYER);
         character.setLevel(dto.level() != null ? dto.level() : 1);
         character.setExperience(0);
         character.setDescription(dto.description());
@@ -44,6 +46,7 @@ public class CharacterMapper {
         character.setName(dto.name());
         character.setRace(dto.race());
         character.setClassCharacter(dto.classCharacter());
+        character.setRole(dto.role());
         character.setLevel(dto.level());
         character.setExperience(dto.experience());
         character.setDescription(dto.description());

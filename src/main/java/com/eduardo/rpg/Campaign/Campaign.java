@@ -13,6 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import com.eduardo.rpg.User.Domains.User;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.eduardo.rpg.Session.Session;
 
 @Getter
 @Setter
@@ -38,6 +39,9 @@ public class Campaign {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "master_id", nullable = false)
     private User master;
+
+    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Session> sessions;
 
     @Column(name = "status", nullable = false)
     private Boolean status = true;

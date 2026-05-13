@@ -6,8 +6,12 @@ import com.eduardo.rpg.Character.DTO.CharacterResponseDTO;
 import com.eduardo.rpg.Character.DTO.CreateCharacterRequest;
 import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
+import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
+import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.enums.CharacterRole;
+import com.eduardo.rpg.enums.Role;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ public class CharacterService {
 
     private final CharacterRepository characterRepository;
     private final UserRepository userRepository;
+    private final CampaignRepository campaignRepository;
     private final CharacterMapper characterMapper;
 
     @Transactional
@@ -28,12 +33,24 @@ public class CharacterService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
 
+        Campaign campaign = campaignRepository.findById(dto.campaignId())
+            .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+
         if (characterRepository.existsByNameAndUserId(dto.name(), userId)) {
             throw new IllegalArgumentException("Já existe um personagem com este nome para este usuário");
         }
 
+        if (user.getRole() == Role.PLAYER && dto.role() == CharacterRole.MONSTER) {
+            throw new IllegalArgumentException("Player não pode criar monstro");
+        }
+
+        if (user.getRole() == Role.PLAYER && characterRepository.existsByUserIdAndCampaignIdAndRole(userId, dto.campaignId(), CharacterRole.PLAYER)) {
+            throw new IllegalArgumentException("Player já possui personagem nesta campanha");
+        }
+
         Character character = characterMapper.toEntity(dto);
         character.setUser(user);
+        character.setCampaign(campaign);
 
         Character savedCharacter = characterRepository.save(character);
         return characterMapper.toResponse(savedCharacter);
@@ -59,6 +76,9 @@ public class CharacterService {
 
     @Transactional(readOnly = true)
     public List<CharacterResponseDTO> findCharactersByCampaignId(Long campaignId) {
+        campaignRepository.findById(campaignId)
+            .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+
         return characterRepository.findByCampaignId(campaignId)
             .stream()
             .map(characterMapper::toResponse)
@@ -78,7 +98,15 @@ public class CharacterService {
         Character character = characterRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
 
+        Campaign campaign = campaignRepository.findById(dto.campaignId())
+            .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+
+        if (character.getUser().getRole() == Role.PLAYER && dto.role() == CharacterRole.MONSTER) {
+            throw new IllegalArgumentException("Player não pode criar monstro");
+        }
+
         character = characterMapper.toEntity(dto, character);
+        character.setCampaign(campaign);
         Character updatedCharacter = characterRepository.save(character);
 
         return characterMapper.toResponse(updatedCharacter);

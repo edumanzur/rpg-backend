@@ -13,6 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.enums.CharacterRole;
 
 import java.time.LocalDateTime;
 
@@ -41,6 +42,10 @@ public class Character {
     @NotBlank
     @Column(name = "class_character", nullable = false, length = 50)
     private String classCharacter;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "character_role", nullable = false, length = 20)
+    private CharacterRole role = CharacterRole.PLAYER;
 
     @Min(value = 1)
     @Column(name = "level", nullable = false)

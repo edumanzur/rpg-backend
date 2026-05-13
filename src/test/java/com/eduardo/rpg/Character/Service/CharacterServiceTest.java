@@ -20,8 +20,11 @@ import com.eduardo.rpg.Character.DTO.CharacterResponseDTO;
 import com.eduardo.rpg.Character.DTO.CreateCharacterRequest;
 import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
+import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.User.Repository.UserRepository;
+import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.enums.Role;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 
@@ -35,12 +38,17 @@ class CharacterServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private CampaignRepository campaignRepository;
+
+    @Mock
     private CharacterMapper characterMapper;
 
     @InjectMocks
     private CharacterService characterService;
 
     private User user;
+    private User master;
+    private Campaign campaign;
     private Character character;
     private CharacterResponseDTO characterResponseDTO;
     private CreateCharacterRequest createCharacterRequest;
@@ -50,9 +58,28 @@ class CharacterServiceTest {
         MockitoAnnotations.openMocks(this);
 
         user = new User(1L, "testuser", "test@example.com", "password", Role.PLAYER, null, null);
-        character = new Character(1L, "Aragorn", "Human", "Ranger", 10, 100, user, null, "A noble ranger", null, null);
-        characterResponseDTO = new CharacterResponseDTO(1L, "Aragorn", "Human", "Ranger", 10, 100, "A noble ranger", 1L, null, null, null);
-        createCharacterRequest = new CreateCharacterRequest("Aragorn", "Human", "Ranger", 10, "A noble ranger");
+        master = new User(2L, "masteruser", "master@example.com", "password", Role.MASTER, null, null);
+        campaign = new Campaign();
+        campaign.setId(1L);
+        campaign.setName("Epic Quest");
+        campaign.setDescription("A grand adventure");
+        campaign.setMaster(master);
+        campaign.setStatus(true);
+
+        character = new Character();
+        character.setId(1L);
+        character.setName("Aragorn");
+        character.setRace("Human");
+        character.setClassCharacter("Ranger");
+        character.setRole(CharacterRole.PLAYER);
+        character.setLevel(10);
+        character.setExperience(100);
+        character.setUser(user);
+        character.setCampaign(campaign);
+        character.setDescription("A noble ranger");
+
+        characterResponseDTO = new CharacterResponseDTO(1L, "Aragorn", "Human", "Ranger", CharacterRole.PLAYER, 10, 100, "A noble ranger", 1L, 1L, null, null);
+        createCharacterRequest = new CreateCharacterRequest("Aragorn", "Human", "Ranger", CharacterRole.PLAYER, 1L, 10, "A noble ranger");
     }
 
     @Test
@@ -62,7 +89,9 @@ class CharacterServiceTest {
         newCharacter.setUser(user);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(characterRepository.existsByNameAndUserId("Aragorn", 1L)).thenReturn(false);
+        when(characterRepository.existsByUserIdAndCampaignIdAndRole(1L, 1L, CharacterRole.PLAYER)).thenReturn(false);
         when(characterMapper.toEntity(createCharacterRequest)).thenReturn(newCharacter);
         when(characterRepository.save(any(Character.class))).thenReturn(character);
         when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
@@ -83,12 +112,33 @@ class CharacterServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when campaign not found")
+    void testCreateCharacterCampaignNotFound() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(campaignRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> characterService.createCharacter(1L, createCharacterRequest));
+    }
+
+    @Test
     @DisplayName("Should throw IllegalArgumentException when character name exists")
     void testCreateCharacterNameExists() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(characterRepository.existsByNameAndUserId("Aragorn", 1L)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> characterService.createCharacter(1L, createCharacterRequest));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when player tries to create monster")
+    void testCreateCharacterPlayerCannotCreateMonster() {
+        CreateCharacterRequest monsterRequest = new CreateCharacterRequest("Orc", "Orc", "Warrior", CharacterRole.MONSTER, 1L, 5, "Enemy");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
+
+        assertThrows(IllegalArgumentException.class, () -> characterService.createCharacter(1L, monsterRequest));
     }
 
     @Test
@@ -128,6 +178,7 @@ class CharacterServiceTest {
     @Test
     @DisplayName("Should find characters by campaign id")
     void testFindCharactersByCampaignIdSuccess() {
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(characterRepository.findByCampaignId(1L)).thenReturn(List.of(character));
         when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
 
@@ -150,8 +201,9 @@ class CharacterServiceTest {
     @Test
     @DisplayName("Should update character successfully")
     void testUpdateCharacterSuccess() {
-        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", "Human", "Ranger", 11, 150, "Updated ranger");
+        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", "Human", "Ranger", CharacterRole.PLAYER, 1L, 11, 150, "Updated ranger");
         when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(characterMapper.toEntity(updateRequest, character)).thenReturn(character);
         when(characterRepository.save(any(Character.class))).thenReturn(character);
         when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
