@@ -12,13 +12,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
@@ -31,13 +32,13 @@ import com.eduardo.rpg.Session.DTO.UpdateSessionRequest;
 import com.eduardo.rpg.Session.Repository.SessionRepository;
 import com.eduardo.rpg.Session.Session;
 import com.eduardo.rpg.User.Domains.User;
-import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.enums.Role;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import com.eduardo.rpg.security.AccessControlService;
 
 @DisplayName("SessionService Unit Tests")
+@ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
 
     @Mock
@@ -48,9 +49,6 @@ class SessionServiceTest {
 
     @Mock
     private CharacterRepository characterRepository;
-
-    @Mock
-    private UserRepository userRepository;
 
     @Mock
     private AccessControlService accessControlService;
@@ -72,8 +70,6 @@ class SessionServiceTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
         master = new User(1L, "masteruser", "master@example.com", "password", Role.MASTER, null, null);
         campaign = new Campaign();
         campaign.setId(1L);
@@ -113,7 +109,6 @@ class SessionServiceTest {
         Session newSession = new Session();
 
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.existsByTitleAndCampaignId("Sessão 1", 1L)).thenReturn(false);
         when(sessionMapper.toEntity(createSessionRequest)).thenReturn(newSession);
@@ -132,7 +127,6 @@ class SessionServiceTest {
     @DisplayName("Should throw IllegalArgumentException when session title already exists")
     void testCreateSessionDuplicateTitle() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.existsByTitleAndCampaignId("Sessão 1", 1L)).thenReturn(true);
 
@@ -143,7 +137,6 @@ class SessionServiceTest {
     @DisplayName("Should find session by id successfully")
     void testFindSessionByIdSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(sessionMapper.toResponse(session)).thenReturn(sessionResponseDTO);
 
@@ -157,7 +150,6 @@ class SessionServiceTest {
     @DisplayName("Should throw ResourceNotFoundException when session not found")
     void testFindSessionByIdNotFound() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> sessionService.findSessionById(authentication, 1L));
@@ -167,7 +159,6 @@ class SessionServiceTest {
     @DisplayName("Should find sessions by campaign id")
     void testFindSessionsByCampaignIdSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.findByCampaignId(1L)).thenReturn(List.of(session));
         when(sessionMapper.toResponse(session)).thenReturn(sessionResponseDTO);
@@ -182,7 +173,6 @@ class SessionServiceTest {
     @DisplayName("Should find all sessions")
     void testFindAllSessionsSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(session)));
         when(sessionMapper.toResponse(session)).thenReturn(sessionResponseDTO);
 
@@ -204,7 +194,6 @@ class SessionServiceTest {
         updatedSession.setCharacters(List.of(playerCharacter, monsterCharacter));
 
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(sessionRepository.existsByTitleAndCampaignIdAndIdNot("Sessão 1 atualizada", 1L, 1L)).thenReturn(false);
@@ -223,7 +212,6 @@ class SessionServiceTest {
     @DisplayName("Should delete session successfully")
     void testDeleteSessionSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(userRepository.findByUsername("masteruser")).thenReturn(Optional.of(master));
         when(sessionRepository.findById(1L)).thenReturn(Optional.of(session));
 
         sessionService.deleteSession(authentication, 1L);

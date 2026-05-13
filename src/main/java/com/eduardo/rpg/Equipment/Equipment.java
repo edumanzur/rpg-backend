@@ -62,13 +62,8 @@ public class Equipment {
     @Column(name = "charisma_bonus", nullable = false)
     private Integer charismaBonus = 0;
 
-    // Which characters currently have/equip this equipment (many-to-many)
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "tb_character_equipments",
-        joinColumns = @JoinColumn(name = "equipment_id"),
-        inverseJoinColumns = @JoinColumn(name = "character_id")
-    )
+    // Lado inverso do relacionamento ManyToMany com Character
+    @ManyToMany(mappedBy = "equipments", fetch = FetchType.LAZY)
     private List<Character> characters = new ArrayList<>();
 
     @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)

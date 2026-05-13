@@ -13,11 +13,14 @@ import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Race.Race;
 import com.eduardo.rpg.CharacterClass.CharacterClass;
+import com.eduardo.rpg.CharacterStatus.CharacterStatus;
 import com.eduardo.rpg.enums.Gender;
 import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.Equipment.Equipment;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -64,6 +67,9 @@ public class Character {
     )
     private java.util.List<com.eduardo.rpg.AbilitySpell.AbilitySpell> abilities = new java.util.ArrayList<>();
 
+    @OneToMany(mappedBy = "character", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CharacterStatus> statuses = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Column(name = "character_role", nullable = false, length = 20)
     private CharacterRole role = CharacterRole.PLAYER;
@@ -79,7 +85,7 @@ public class Character {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campaign_id", nullable = true)
+    @JoinColumn(name = "campaign_id")
     private Campaign campaign;
 
     @Column(name = "description", length = 500)

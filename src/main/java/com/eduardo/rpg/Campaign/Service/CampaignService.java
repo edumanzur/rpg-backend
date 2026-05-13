@@ -6,6 +6,7 @@ import com.eduardo.rpg.Campaign.DTO.CampaignResponseDTO;
 import com.eduardo.rpg.Campaign.DTO.CreateCampaignRequest;
 import com.eduardo.rpg.Campaign.DTO.UpdateCampaignRequest;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
+import com.eduardo.rpg.StatusTemplate.StatusTemplate;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.security.AccessControlService;
@@ -17,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
+
+import java.util.HashSet;
+import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
@@ -43,6 +47,12 @@ public class CampaignService {
 
         Campaign campaign = campaignMapper.toEntity(dto);
         campaign.setMaster(master);
+        if (campaign.getStatusTemplates() != null) {
+            validateStatusTemplates(campaign.getStatusTemplates());
+            for (StatusTemplate template : campaign.getStatusTemplates()) {
+                template.setCampaign(campaign);
+            }
+        }
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         return campaignMapper.toResponse(savedCampaign);
@@ -107,6 +117,32 @@ public class CampaignService {
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
         accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
         campaignRepository.delete(campaign);
+    }
+
+    private void validateStatusTemplates(java.util.List<StatusTemplate> templates) {
+        Set<String> names = new HashSet<>();
+        for (StatusTemplate template : templates) {
+            if (template == null || template.getName() == null || template.getName().isBlank()) {
+                throw new IllegalArgumentException("Todo status precisa ter um nome");
+            }
+
+            String normalized = template.getName().trim().toLowerCase();
+            if (!names.add(normalized)) {
+                throw new IllegalArgumentException("Não é permitido repetir o nome de status dentro da mesma campanha");
+            }
+
+            if (template.getMinValue() != null && template.getMaxValue() != null && template.getMinValue() > template.getMaxValue()) {
+                throw new IllegalArgumentException("O valor mínimo não pode ser maior que o valor máximo");
+            }
+
+            if (template.getMinValue() != null && template.getDefaultValue() != null && template.getDefaultValue() < template.getMinValue()) {
+                throw new IllegalArgumentException("O defaultValue precisa ser maior ou igual ao valor mínimo");
+            }
+
+            if (template.getMaxValue() != null && template.getDefaultValue() != null && template.getDefaultValue() > template.getMaxValue()) {
+                throw new IllegalArgumentException("O defaultValue precisa ser menor ou igual ao valor máximo");
+            }
+        }
     }
 }
 

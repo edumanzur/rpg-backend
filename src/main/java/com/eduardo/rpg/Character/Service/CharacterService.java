@@ -8,6 +8,7 @@ import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.CharacterStatus.CharacterStatus;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
 import com.eduardo.rpg.Race.Repository.RaceRepository;
 import com.eduardo.rpg.User.Repository.UserRepository;
@@ -15,6 +16,7 @@ import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.Race.Race;
 import com.eduardo.rpg.CharacterClass.CharacterClass;
+import com.eduardo.rpg.StatusTemplate.StatusTemplate;
 import com.eduardo.rpg.security.AccessControlService;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -70,6 +73,7 @@ public class CharacterService {
         character.setCampaign(campaign);
         character.setRace(race);
         character.setCharacterClass(characterClass);
+        character.setStatuses(createStatusesForCampaign(campaign, character));
 
         Character savedCharacter = characterRepository.save(character);
         return characterMapper.toResponse(savedCharacter);
@@ -126,6 +130,7 @@ public class CharacterService {
         Character character = characterRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
         accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
+        Long previousCampaignId = character.getCampaign() != null ? character.getCampaign().getId() : null;
 
         Campaign campaign = campaignRepository.findById(dto.campaignId())
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
@@ -144,6 +149,10 @@ public class CharacterService {
         character.setCampaign(campaign);
         character.setRace(race);
         character.setCharacterClass(characterClass);
+
+        if (!Objects.equals(previousCampaignId, campaign.getId())) {
+            character.setStatuses(createStatusesForCampaign(campaign, character));
+        }
         Character updatedCharacter = characterRepository.save(character);
 
         return characterMapper.toResponse(updatedCharacter);
@@ -156,6 +165,23 @@ public class CharacterService {
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
         accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
         characterRepository.delete(character);
+    }
+
+    private List<CharacterStatus> createStatusesForCampaign(Campaign campaign, Character character) {
+        if (campaign == null || campaign.getStatusTemplates() == null || campaign.getStatusTemplates().isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        List<CharacterStatus> statuses = new java.util.ArrayList<>();
+        for (StatusTemplate template : campaign.getStatusTemplates()) {
+            CharacterStatus status = new CharacterStatus();
+            status.setCharacter(character);
+            status.setTemplate(template);
+            status.setCurrentValue(template.getDefaultValue());
+            statuses.add(status);
+        }
+
+        return statuses;
     }
 }
 
