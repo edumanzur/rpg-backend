@@ -1,11 +1,7 @@
 package com.eduardo.rpg.Campaign.DTO;
 
 import com.eduardo.rpg.Campaign.Campaign;
-import com.eduardo.rpg.StatusTemplate.StatusTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 public class CampaignMapper {
@@ -31,7 +27,6 @@ public class CampaignMapper {
         campaign.setName(dto.name());
         campaign.setDescription(dto.description());
         campaign.setStatus(dto.status() != null ? dto.status() : true);
-        campaign.setStatusTemplates(mapStatusTemplates(dto.statusTemplates()));
 
         return campaign;
     }
@@ -44,25 +39,6 @@ public class CampaignMapper {
         campaign.setStatus(dto.status());
 
         return campaign;
-    }
-
-    private List<StatusTemplate> mapStatusTemplates(List<CreateStatusTemplateRequest> requests) {
-        if (requests == null || requests.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<StatusTemplate> templates = new ArrayList<>();
-        for (CreateStatusTemplateRequest request : requests) {
-            StatusTemplate template = new StatusTemplate();
-            template.setName(request.name());
-            template.setDescription(request.description());
-            template.setDefaultValue(request.defaultValue());
-            template.setMinValue(request.minValue());
-            template.setMaxValue(request.maxValue());
-            templates.add(template);
-        }
-
-        return templates;
     }
 }
 

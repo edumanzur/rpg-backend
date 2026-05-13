@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,7 +30,7 @@ public class CharacterStatusController {
         return ResponseEntity.ok(characterStatusService.findStatusesByCharacterId(authentication, characterId));
     }
 
-    @PutMapping("/{statusId}")
+    @PatchMapping("/{statusId}")
     public ResponseEntity<CharacterStatusResponseDTO> update(Authentication authentication, @PathVariable Long characterId, @PathVariable Long statusId, @RequestBody @Valid UpdateCharacterStatusRequest dto) {
         return ResponseEntity.ok(characterStatusService.updateCharacterStatus(authentication, characterId, statusId, dto));
     }

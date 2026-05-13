@@ -49,6 +49,9 @@ class CampaignServiceTest {
     @Mock
     private AccessControlService accessControlService;
 
+    @Mock
+    private StatusTemplateValidator statusTemplateValidator;
+
     @InjectMocks
     private CampaignService campaignService;
 

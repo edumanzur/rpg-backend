@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.data.domain.Page;
@@ -151,7 +152,7 @@ public class CharacterService {
         character.setCharacterClass(characterClass);
 
         if (!Objects.equals(previousCampaignId, campaign.getId())) {
-            character.setStatuses(createStatusesForCampaign(campaign, character));
+            replaceStatusesForCampaign(character, campaign);
         }
         Character updatedCharacter = characterRepository.save(character);
 
@@ -182,6 +183,16 @@ public class CharacterService {
         }
 
         return statuses;
+    }
+
+    private void replaceStatusesForCampaign(Character character, Campaign campaign) {
+        if (character.getStatuses() == null) {
+            character.setStatuses(new ArrayList<>());
+        } else {
+            character.getStatuses().clear();
+        }
+
+        character.getStatuses().addAll(createStatusesForCampaign(campaign, character));
     }
 }
 

@@ -4,6 +4,7 @@ import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Campaign.DTO.CampaignMapper;
 import com.eduardo.rpg.Campaign.DTO.CampaignResponseDTO;
 import com.eduardo.rpg.Campaign.DTO.CreateCampaignRequest;
+import com.eduardo.rpg.Campaign.DTO.CreateStatusTemplateRequest;
 import com.eduardo.rpg.Campaign.DTO.UpdateCampaignRequest;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.StatusTemplate.StatusTemplate;
@@ -19,8 +20,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
@@ -29,6 +31,7 @@ public class CampaignService {
     private final UserRepository userRepository;
     private final CampaignMapper campaignMapper;
     private final AccessControlService accessControlService;
+    private final StatusTemplateValidator statusTemplateValidator;
 
     @Transactional
     public CampaignResponseDTO createCampaign(Authentication authentication, Long masterId, CreateCampaignRequest dto) {
@@ -47,12 +50,7 @@ public class CampaignService {
 
         Campaign campaign = campaignMapper.toEntity(dto);
         campaign.setMaster(master);
-        if (campaign.getStatusTemplates() != null) {
-            validateStatusTemplates(campaign.getStatusTemplates());
-            for (StatusTemplate template : campaign.getStatusTemplates()) {
-                template.setCampaign(campaign);
-            }
-        }
+        campaign.setStatusTemplates(mapStatusTemplates(campaign, dto.statusTemplates()));
 
         Campaign savedCampaign = campaignRepository.save(campaign);
         return campaignMapper.toResponse(savedCampaign);
@@ -119,30 +117,30 @@ public class CampaignService {
         campaignRepository.delete(campaign);
     }
 
-    private void validateStatusTemplates(java.util.List<StatusTemplate> templates) {
-        Set<String> names = new HashSet<>();
-        for (StatusTemplate template : templates) {
-            if (template == null || template.getName() == null || template.getName().isBlank()) {
-                throw new IllegalArgumentException("Todo status precisa ter um nome");
-            }
-
-            String normalized = template.getName().trim().toLowerCase();
-            if (!names.add(normalized)) {
-                throw new IllegalArgumentException("Não é permitido repetir o nome de status dentro da mesma campanha");
-            }
-
-            if (template.getMinValue() != null && template.getMaxValue() != null && template.getMinValue() > template.getMaxValue()) {
-                throw new IllegalArgumentException("O valor mínimo não pode ser maior que o valor máximo");
-            }
-
-            if (template.getMinValue() != null && template.getDefaultValue() != null && template.getDefaultValue() < template.getMinValue()) {
-                throw new IllegalArgumentException("O defaultValue precisa ser maior ou igual ao valor mínimo");
-            }
-
-            if (template.getMaxValue() != null && template.getDefaultValue() != null && template.getDefaultValue() > template.getMaxValue()) {
-                throw new IllegalArgumentException("O defaultValue precisa ser menor ou igual ao valor máximo");
-            }
+    private List<StatusTemplate> mapStatusTemplates(Campaign campaign, List<CreateStatusTemplateRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return new ArrayList<>();
         }
+
+        List<StatusTemplate> templates = new ArrayList<>();
+        for (CreateStatusTemplateRequest request : requests) {
+            if (request == null) {
+                templates.add(null);
+                continue;
+            }
+
+            StatusTemplate template = new StatusTemplate();
+            template.setName(request.name());
+            template.setDescription(request.description());
+            template.setDefaultValue(request.defaultValue());
+            template.setMinValue(request.minValue());
+            template.setMaxValue(request.maxValue());
+            template.setCampaign(campaign);
+            templates.add(template);
+        }
+
+        statusTemplateValidator.validateTemplates(templates);
+        return templates;
     }
 }
 

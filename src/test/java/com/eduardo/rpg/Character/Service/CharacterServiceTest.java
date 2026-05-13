@@ -31,8 +31,10 @@ import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.CharacterClass.CharacterClass;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
+import com.eduardo.rpg.CharacterStatus.CharacterStatus;
 import com.eduardo.rpg.Race.Race;
 import com.eduardo.rpg.Race.Repository.RaceRepository;
+import com.eduardo.rpg.StatusTemplate.StatusTemplate;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.enums.CharacterRole;
@@ -276,6 +278,55 @@ class CharacterServiceTest {
 
         assertNotNull(result);
         verify(characterRepository, times(1)).save(any(Character.class));
+    }
+
+    @Test
+    @DisplayName("Should replace old statuses when character changes campaign")
+    void testUpdateCharacterReplacesStatusesOnCampaignChange() {
+        Campaign previousCampaign = new Campaign();
+        previousCampaign.setId(10L);
+        previousCampaign.setName("Old Campaign");
+
+        StatusTemplate oldTemplate = new StatusTemplate();
+        oldTemplate.setId(1L);
+        oldTemplate.setName("HP");
+
+        CharacterStatus oldStatus = new CharacterStatus();
+        oldStatus.setId(1L);
+        oldStatus.setCharacter(character);
+        oldStatus.setTemplate(oldTemplate);
+        oldStatus.setCurrentValue(20);
+
+        character.setCampaign(previousCampaign);
+        character.setStatuses(new java.util.ArrayList<>(List.of(oldStatus)));
+
+        Campaign newCampaign = new Campaign();
+        newCampaign.setId(20L);
+        newCampaign.setName("New Campaign");
+
+        StatusTemplate newTemplate = new StatusTemplate();
+        newTemplate.setId(2L);
+        newTemplate.setName("Mana");
+        newTemplate.setDefaultValue(15);
+        newCampaign.setStatusTemplates(List.of(newTemplate));
+
+        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 20L, 11, 150, "Updated ranger");
+
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(campaignRepository.findById(20L)).thenReturn(Optional.of(newCampaign));
+        when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
+        when(raceRepository.findById(1L)).thenReturn(Optional.of(race));
+        when(characterMapper.toEntity(updateRequest, character)).thenReturn(character);
+        when(characterRepository.save(any(Character.class))).thenReturn(character);
+        when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        CharacterResponseDTO result = characterService.updateCharacter(authentication, 1L, updateRequest);
+
+        assertNotNull(result);
+        assertEquals(1, character.getStatuses().size());
+        assertEquals("Mana", character.getStatuses().get(0).getTemplate().getName());
+        assertEquals(15, character.getStatuses().get(0).getCurrentValue());
     }
 
     @Test

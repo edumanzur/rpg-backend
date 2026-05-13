@@ -32,6 +32,7 @@ public class StatusTemplateService {
     private final CharacterStatusRepository characterStatusRepository;
     private final StatusTemplateMapper statusTemplateMapper;
     private final AccessControlService accessControlService;
+    private final StatusTemplateValidator statusTemplateValidator;
 
     @Transactional(readOnly = true)
     public List<StatusTemplateResponseDTO> findStatusTemplatesByCampaignId(Authentication authentication, Long campaignId) {
@@ -64,7 +65,7 @@ public class StatusTemplateService {
         }
 
         StatusTemplate template = statusTemplateMapper.toEntity(dto);
-        validateTemplateBounds(template);
+        statusTemplateValidator.validateTemplateBounds(template);
         template.setCampaign(campaign);
 
         StatusTemplate savedTemplate = statusTemplateRepository.save(template);
@@ -86,7 +87,7 @@ public class StatusTemplateService {
         }
 
         template = statusTemplateMapper.toEntity(dto, template);
-        validateTemplateBounds(template);
+        statusTemplateValidator.validateTemplateBounds(template);
         StatusTemplate savedTemplate = statusTemplateRepository.save(template);
         return statusTemplateMapper.toResponse(savedTemplate);
     }
@@ -132,20 +133,6 @@ public class StatusTemplateService {
 
         if (!statuses.isEmpty()) {
             characterStatusRepository.saveAll(statuses);
-        }
-    }
-
-    private void validateTemplateBounds(StatusTemplate template) {
-        if (template.getMinValue() != null && template.getMaxValue() != null && template.getMinValue() > template.getMaxValue()) {
-            throw new IllegalArgumentException("O valor mínimo não pode ser maior que o valor máximo");
-        }
-
-        if (template.getMinValue() != null && template.getDefaultValue() != null && template.getDefaultValue() < template.getMinValue()) {
-            throw new IllegalArgumentException("O defaultValue precisa ser maior ou igual ao valor mínimo");
-        }
-
-        if (template.getMaxValue() != null && template.getDefaultValue() != null && template.getDefaultValue() > template.getMaxValue()) {
-            throw new IllegalArgumentException("O defaultValue precisa ser menor ou igual ao valor máximo");
         }
     }
 }
