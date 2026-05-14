@@ -1,5 +1,6 @@
 package com.eduardo.rpg.AbilitySpell;
 
+import com.eduardo.rpg.AbilitySpell.Requirement.AbilityRequirement;
 import jakarta.persistence.*;
 import com.eduardo.rpg.enums.CostType;
 import lombok.AllArgsConstructor;
@@ -65,6 +66,9 @@ public class AbilitySpell {
     // Relacionamento com classes que possuem/percebem essa habilidade
     @ManyToMany(mappedBy = "abilities", fetch = FetchType.LAZY)
     private List<com.eduardo.rpg.CharacterClass.CharacterClass> classes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "ability", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AbilityRequirement> requirements = new ArrayList<>();
 
     @Column(updatable = false, nullable = false)
     @CreationTimestamp

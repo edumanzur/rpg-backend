@@ -9,6 +9,5 @@ import java.util.Optional;
 @Repository
 public interface AbilitySpellRepository extends JpaRepository<AbilitySpell, Long> {
     Optional<AbilitySpell> findByNameIgnoreCase(String name);
-    boolean existsByNameIgnoreCase(String name);
 }
 

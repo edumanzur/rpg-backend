@@ -51,6 +51,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll() // Libera o Banco de Dados
                 .requestMatchers("/users/**").permitAll()      // Libera seus Endpoints de Usuário
+                .requestMatchers("/ability-spells/**").authenticated()
+                .requestMatchers("/equipments/**").authenticated()
                 .requestMatchers("/campaigns/*/status-templates/**").authenticated()
                 .requestMatchers("/characters/*/statuses/**").authenticated()
                 .requestMatchers("/campaigns/**").authenticated()

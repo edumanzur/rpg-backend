@@ -1,0 +1,310 @@
+package com.eduardo.rpg.AbilitySpell.Service;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
+
+import com.eduardo.rpg.AbilitySpell.AbilitySpell;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellMapper;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellResponseDTO;
+import com.eduardo.rpg.AbilitySpell.DTO.CreateAbilitySpellRequest;
+import com.eduardo.rpg.AbilitySpell.DTO.UpdateAbilitySpellRequest;
+import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
+import com.eduardo.rpg.CharacterClass.CharacterClass;
+import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
+import com.eduardo.rpg.enums.CostType;
+import com.eduardo.rpg.exception.ResourceNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+@DisplayName("AbilitySpellService Unit Tests")
+@ExtendWith(MockitoExtension.class)
+class AbilitySpellServiceTest {
+
+    @Mock
+    private AbilitySpellRepository abilitySpellRepository;
+
+    @Mock
+    private CharacterClassRepository characterClassRepository;
+
+    @Mock
+    private AbilitySpellMapper abilitySpellMapper;
+
+    @InjectMocks
+    private AbilitySpellService abilitySpellService;
+
+    private AbilitySpell abilitySpell;
+    private AbilitySpellResponseDTO abilitySpellResponseDTO;
+    private CreateAbilitySpellRequest createAbilitySpellRequest;
+    private CharacterClass mageClass;
+
+    @BeforeEach
+    void setUp() {
+        mageClass = new CharacterClass();
+        mageClass.setId(1L);
+        mageClass.setName("Mage");
+
+        abilitySpell = new AbilitySpell();
+        abilitySpell.setId(1L);
+        abilitySpell.setName("Fireball");
+        abilitySpell.setDamage("3d6");
+        abilitySpell.setEffect("Explosive fire damage");
+        abilitySpell.setMainStatus("Burn");
+        abilitySpell.setDescription("A powerful fire spell");
+        abilitySpell.setCost("1 action");
+        abilitySpell.setCostType(CostType.ACTION);
+        abilitySpell.setRequiredLevel(3);
+
+        abilitySpellResponseDTO = new AbilitySpellResponseDTO(
+            1L,
+            "Fireball",
+            "3d6",
+            "Explosive fire damage",
+            "Burn",
+            "A powerful fire spell",
+            "1 action",
+            CostType.ACTION,
+            3,
+            List.of(new AbilitySpellResponseDTO.RequirementDTO(1L, 1L, "Mage", 3, 0, 0, 0, 2, 0, 0)),
+            null,
+            null
+        );
+
+        createAbilitySpellRequest = new CreateAbilitySpellRequest(
+            "Fireball",
+            "3d6",
+            "Explosive fire damage",
+            "Burn",
+            "A powerful fire spell",
+            "1 action",
+            CostType.ACTION,
+            3,
+            List.of(new CreateAbilitySpellRequest.RequirementRequest(1L, 3, 0, 0, 0, 2, 0, 0))
+        );
+    }
+
+    @Test
+    @DisplayName("Should create ability successfully")
+    void testCreateAbilitySpellSuccess() {
+        AbilitySpell newAbility = new AbilitySpell();
+        when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.empty());
+        when(characterClassRepository.findById(1L)).thenReturn(Optional.of(mageClass));
+        when(abilitySpellMapper.toEntity(createAbilitySpellRequest)).thenReturn(newAbility);
+        when(abilitySpellRepository.save(any(AbilitySpell.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(abilitySpellMapper.toResponse(any(AbilitySpell.class))).thenReturn(abilitySpellResponseDTO);
+
+        AbilitySpellResponseDTO result = abilitySpellService.createAbilitySpell(createAbilitySpellRequest);
+
+        assertNotNull(result);
+        assertEquals("Fireball", result.name());
+
+        ArgumentCaptor<AbilitySpell> captor = ArgumentCaptor.forClass(AbilitySpell.class);
+        verify(abilitySpellRepository, times(1)).save(captor.capture());
+        assertEquals(1, captor.getValue().getRequirements().size());
+        assertEquals("Mage", captor.getValue().getRequirements().get(0).getRequiredClass().getName());
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when ability name exists")
+    void testCreateAbilitySpellNameExists() {
+        when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.of(abilitySpell));
+
+        assertThrows(IllegalArgumentException.class, () -> abilitySpellService.createAbilitySpell(createAbilitySpellRequest));
+        verify(abilitySpellRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when required class is missing")
+    void testCreateAbilitySpellRequirementClassNotFound() {
+        CreateAbilitySpellRequest request = new CreateAbilitySpellRequest(
+            "Fireball",
+            "3d6",
+            "Explosive fire damage",
+            "Burn",
+            "A powerful fire spell",
+            "1 action",
+            CostType.ACTION,
+            3,
+            List.of(new CreateAbilitySpellRequest.RequirementRequest(99L, 3, 0, 0, 0, 2, 0, 0))
+        );
+
+        when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.empty());
+        when(characterClassRepository.findById(99L)).thenReturn(Optional.empty());
+        when(abilitySpellMapper.toEntity(request)).thenReturn(new AbilitySpell());
+
+        assertThrows(ResourceNotFoundException.class, () -> abilitySpellService.createAbilitySpell(request));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when requirement is null")
+    void testCreateAbilitySpellNullRequirement() {
+        List<CreateAbilitySpellRequest.RequirementRequest> requirements = new java.util.AbstractList<>() {
+            @Override
+            public CreateAbilitySpellRequest.RequirementRequest get(int index) {
+                return null;
+            }
+
+            @Override
+            public int size() {
+                return 1;
+            }
+        };
+
+        CreateAbilitySpellRequest request = new CreateAbilitySpellRequest(
+            "Fireball",
+            "3d6",
+            "Explosive fire damage",
+            "Burn",
+            "A powerful fire spell",
+            "1 action",
+            CostType.ACTION,
+            3,
+            requirements
+        );
+
+        when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.empty());
+        when(abilitySpellMapper.toEntity(request)).thenReturn(new AbilitySpell());
+
+        assertThrows(IllegalArgumentException.class, () -> abilitySpellService.createAbilitySpell(request));
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when id is null")
+    void testFindAbilitySpellByIdNull() {
+        assertThrows(ResourceNotFoundException.class, () -> abilitySpellService.findAbilitySpellById(null));
+    }
+
+    @Test
+    @DisplayName("Should find ability by id successfully")
+    void testFindAbilitySpellByIdSuccess() {
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+        when(abilitySpellMapper.toResponse(abilitySpell)).thenReturn(abilitySpellResponseDTO);
+
+        AbilitySpellResponseDTO result = abilitySpellService.findAbilitySpellById(1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.id());
+        assertEquals("Fireball", result.name());
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when ability not found")
+    void testFindAbilitySpellByIdNotFound() {
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> abilitySpellService.findAbilitySpellById(1L));
+    }
+
+    @Test
+    @DisplayName("Should find all abilities successfully")
+    void testFindAllAbilitySpellsSuccess() {
+        AbilitySpell second = new AbilitySpell();
+        second.setId(2L);
+        second.setName("Ice Bolt");
+        second.setCostType(CostType.ACTION);
+
+        when(abilitySpellRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(abilitySpell, second)));
+        when(abilitySpellMapper.toResponse(abilitySpell)).thenReturn(abilitySpellResponseDTO);
+        when(abilitySpellMapper.toResponse(second)).thenReturn(new AbilitySpellResponseDTO(2L, "Ice Bolt", "2d8", "Cold damage", "Freeze", "A cold spell", "1 action", CostType.ACTION, 2, List.of(), null, null));
+
+        Page<AbilitySpellResponseDTO> result = abilitySpellService.findAllAbilitySpells(PageRequest.of(0, 10));
+
+        assertEquals(2, result.getTotalElements());
+    }
+
+    @Test
+    @DisplayName("Should update ability successfully")
+    void testUpdateAbilitySpellSuccess() {
+        UpdateAbilitySpellRequest updateRequest = new UpdateAbilitySpellRequest(
+            "Fireball",
+            "4d6",
+            "Stronger fire damage",
+            "Burn",
+            "An improved fire spell",
+            "1 action",
+            CostType.ACTION,
+            4,
+            List.of(new UpdateAbilitySpellRequest.RequirementRequest(1L, 4, 0, 0, 0, 2, 0, 0))
+        );
+
+        AbilitySpell updatedAbility = new AbilitySpell();
+        updatedAbility.setId(1L);
+        updatedAbility.setName("Fireball");
+
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+        when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.of(abilitySpell));
+        when(characterClassRepository.findById(1L)).thenReturn(Optional.of(mageClass));
+        when(abilitySpellMapper.toEntity(updateRequest, abilitySpell)).thenReturn(updatedAbility);
+        when(abilitySpellRepository.save(any(AbilitySpell.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(abilitySpellMapper.toResponse(any(AbilitySpell.class))).thenReturn(new AbilitySpellResponseDTO(1L, "Fireball", "4d6", "Stronger fire damage", "Burn", "An improved fire spell", "1 action", CostType.ACTION, 4, List.of(), null, null));
+
+        AbilitySpellResponseDTO result = abilitySpellService.updateAbilitySpell(1L, updateRequest);
+
+        assertNotNull(result);
+        assertEquals("Fireball", result.name());
+        verify(abilitySpellRepository, times(1)).save(any(AbilitySpell.class));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when updating to duplicate ability name")
+    void testUpdateAbilitySpellDuplicateName() {
+        UpdateAbilitySpellRequest updateRequest = new UpdateAbilitySpellRequest(
+            "Ice Bolt",
+            "2d8",
+            "Cold damage",
+            "Freeze",
+            "A cold spell",
+            "1 action",
+            CostType.ACTION,
+            2,
+            List.of()
+        );
+
+        AbilitySpell anotherAbility = new AbilitySpell();
+        anotherAbility.setId(2L);
+        anotherAbility.setName("Ice Bolt");
+
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+        when(abilitySpellRepository.findByNameIgnoreCase("Ice Bolt")).thenReturn(Optional.of(anotherAbility));
+
+        assertThrows(IllegalArgumentException.class, () -> abilitySpellService.updateAbilitySpell(1L, updateRequest));
+    }
+
+    @Test
+    @DisplayName("Should delete ability successfully")
+    void testDeleteAbilitySpellSuccess() {
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+
+        abilitySpellService.deleteAbilitySpell(1L);
+
+        verify(abilitySpellRepository, times(1)).delete(abilitySpell);
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when deleting non-existent ability")
+    void testDeleteAbilitySpellNotFound() {
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> abilitySpellService.deleteAbilitySpell(1L));
+    }
+}
+
+
+
