@@ -59,5 +59,11 @@ public class CharacterClassController {
         characterClassService.deleteCharacterClass(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/abilities/{abilityId}")
+    public ResponseEntity<Void> addAbilityToClass(@PathVariable Long id, @PathVariable Long abilityId) {
+        characterClassService.addAbilityToClass(id, abilityId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

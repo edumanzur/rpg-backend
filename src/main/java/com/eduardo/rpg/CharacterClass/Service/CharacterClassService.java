@@ -6,6 +6,8 @@ import com.eduardo.rpg.CharacterClass.DTO.CharacterClassResponseDTO;
 import com.eduardo.rpg.CharacterClass.DTO.CreateCharacterClassRequest;
 import com.eduardo.rpg.CharacterClass.DTO.UpdateCharacterClassRequest;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
+import com.eduardo.rpg.AbilitySpell.AbilitySpell;
+import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CharacterClassService {
 
     private final CharacterClassRepository characterClassRepository;
+    private final AbilitySpellRepository abilitySpellRepository;
     private final CharacterClassMapper characterClassMapper;
 
     @Transactional
@@ -69,6 +72,29 @@ public class CharacterClassService {
         CharacterClass characterClass = characterClassRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
         characterClassRepository.delete(characterClass);
+    }
+
+    @Transactional
+    @SuppressWarnings("unused")
+    public void addAbilityToClass(Long classId, Long abilityId) {
+        CharacterClass characterClass = characterClassRepository.findById(classId)
+            .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
+        AbilitySpell abilitySpell = abilitySpellRepository.findById(abilityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+
+        if (characterClass.getAbilities() == null) {
+            characterClass.setAbilities(new java.util.ArrayList<>());
+        }
+        if (characterClass.getAbilities().contains(abilitySpell)) {
+            throw new IllegalArgumentException("Habilidade/Magia já associada à classe");
+        }
+
+        characterClass.getAbilities().add(abilitySpell);
+        if (abilitySpell.getClasses() != null && !abilitySpell.getClasses().contains(characterClass)) {
+            abilitySpell.getClasses().add(characterClass);
+        }
+
+        characterClassRepository.save(characterClass);
     }
 }
 

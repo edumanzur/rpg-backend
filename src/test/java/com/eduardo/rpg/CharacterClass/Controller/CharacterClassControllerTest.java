@@ -189,5 +189,16 @@ class CharacterClassControllerTest {
             .andExpect(jsonPath("$.code", is("NOT_FOUND")))
             .andExpect(jsonPath("$.message", is("Classe não encontrada!")));
     }
+
+    @Test
+    @DisplayName("POST /character-classes/{id}/abilities/{abilityId} should associate ability successfully")
+    void testAddAbilityToClassSuccess() throws Exception {
+        doNothing().when(characterClassService).addAbilityToClass(1L, 1L);
+
+        mockMvc.perform(post("/character-classes/1/abilities/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent());
+
+        verify(characterClassService, times(1)).addAbilityToClass(1L, 1L);
+    }
 }
 

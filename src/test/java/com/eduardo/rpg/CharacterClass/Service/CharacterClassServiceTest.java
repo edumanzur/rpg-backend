@@ -3,6 +3,7 @@ package com.eduardo.rpg.CharacterClass.Service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -18,6 +19,8 @@ import com.eduardo.rpg.CharacterClass.DTO.CharacterClassResponseDTO;
 import com.eduardo.rpg.CharacterClass.DTO.CreateCharacterClassRequest;
 import com.eduardo.rpg.CharacterClass.DTO.UpdateCharacterClassRequest;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
+import com.eduardo.rpg.AbilitySpell.AbilitySpell;
+import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,12 +41,16 @@ class CharacterClassServiceTest {
     private CharacterClassRepository characterClassRepository;
 
     @Mock
+    private AbilitySpellRepository abilitySpellRepository;
+
+    @Mock
     private CharacterClassMapper characterClassMapper;
 
     @InjectMocks
     private CharacterClassService characterClassService;
 
     private CharacterClass characterClass;
+    private AbilitySpell abilitySpell;
     private CharacterClassResponseDTO characterClassResponseDTO;
     private CreateCharacterClassRequest createCharacterClassRequest;
 
@@ -59,6 +66,12 @@ class CharacterClassServiceTest {
         characterClass.setIntelligenceBonus(0);
         characterClass.setWisdomBonus(1);
         characterClass.setCharismaBonus(0);
+
+        abilitySpell = new AbilitySpell();
+        abilitySpell.setId(1L);
+        abilitySpell.setName("Fireball");
+        abilitySpell.setDamage("3d6");
+        abilitySpell.setEffect("Explosive fire damage");
 
         characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null);
         createCharacterClassRequest = new CreateCharacterClassRequest("Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0);
@@ -184,6 +197,30 @@ class CharacterClassServiceTest {
         when(characterClassRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> characterClassService.deleteCharacterClass(1L));
+    }
+
+    @Test
+    @DisplayName("Should add ability to class successfully")
+    void testAddAbilityToClassSuccess() {
+        when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+
+        characterClassService.addAbilityToClass(1L, 1L);
+
+        assertEquals(1, characterClass.getAbilities().size());
+        assertTrue(characterClass.getAbilities().contains(abilitySpell));
+        verify(characterClassRepository, times(1)).save(characterClass);
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when adding duplicated ability to class")
+    void testAddAbilityToClassDuplicate() {
+        characterClass.getAbilities().add(abilitySpell);
+        when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+
+        assertThrows(IllegalArgumentException.class, () -> characterClassService.addAbilityToClass(1L, 1L));
+        verify(characterClassRepository, never()).save(any());
     }
 }
 

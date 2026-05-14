@@ -71,5 +71,41 @@ public class CharacterController {
         characterService.deleteCharacter(authentication, id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/equipments/{equipmentId}")
+    public ResponseEntity<Void> addEquipmentToCharacter(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long equipmentId) {
+        characterService.addEquipmentToCharacter(authentication, id, equipmentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/equipments/{equipmentId}")
+    public ResponseEntity<Void> removeEquipmentFromCharacter(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long equipmentId) {
+        characterService.removeEquipmentFromCharacter(authentication, id, equipmentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/abilities/{abilityId}")
+    public ResponseEntity<Void> addAbilityToCharacter(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long abilityId) {
+        characterService.addAbilityToCharacter(authentication, id, abilityId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/abilities/{abilityId}")
+    public ResponseEntity<Void> removeAbilityFromCharacter(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long abilityId) {
+        characterService.removeAbilityFromCharacter(authentication, id, abilityId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

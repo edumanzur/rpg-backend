@@ -8,9 +8,13 @@ import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.Campaign.Campaign;
+import com.eduardo.rpg.AbilitySpell.AbilitySpell;
+import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.CharacterStatus.CharacterStatus;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
 import com.eduardo.rpg.Race.Repository.RaceRepository;
+import com.eduardo.rpg.Equipment.Equipment;
+import com.eduardo.rpg.Equipment.Repository.EquipmentRepository;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.enums.CharacterRole;
@@ -40,6 +44,8 @@ public class CharacterService {
     private final CampaignRepository campaignRepository;
     private final CharacterClassRepository characterClassRepository;
     private final RaceRepository raceRepository;
+    private final EquipmentRepository equipmentRepository;
+    private final AbilitySpellRepository abilitySpellRepository;
     private final CharacterMapper characterMapper;
     private final AccessControlService accessControlService;
 
@@ -168,6 +174,83 @@ public class CharacterService {
         characterRepository.delete(character);
     }
 
+    @Transactional
+    @SuppressWarnings("unused")
+    public void addEquipmentToCharacter(Authentication authentication, Long characterId, Long equipmentId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+        Equipment equipment = equipmentRepository.findById(equipmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Equipamento não encontrado!"));
+
+        if (character.getEquipments() == null) {
+            character.setEquipments(new ArrayList<>());
+        }
+        if (character.getEquipments().contains(equipment)) {
+            throw new IllegalArgumentException("Equipamento já associado ao personagem");
+        }
+
+        character.getEquipments().add(equipment);
+        if (equipment.getCharacters() != null && !equipment.getCharacters().contains(character)) {
+            equipment.getCharacters().add(character);
+        }
+
+        characterRepository.save(character);
+    }
+
+    @Transactional
+    @SuppressWarnings("unused")
+    public void removeEquipmentFromCharacter(Authentication authentication, Long characterId, Long equipmentId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+        Equipment equipment = equipmentRepository.findById(equipmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Equipamento não encontrado!"));
+
+        if (character.getEquipments() == null || !character.getEquipments().remove(equipment)) {
+            throw new ResourceNotFoundException("Equipamento não associado ao personagem!");
+        }
+
+        if (equipment.getCharacters() != null) {
+            equipment.getCharacters().remove(character);
+        }
+
+        characterRepository.save(character);
+    }
+
+    @Transactional
+    @SuppressWarnings("unused")
+    public void addAbilityToCharacter(Authentication authentication, Long characterId, Long abilityId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+        AbilitySpell abilitySpell = abilitySpellRepository.findById(abilityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+
+        if (character.getAbilities() == null) {
+            character.setAbilities(new ArrayList<>());
+        }
+        if (character.getAbilities().contains(abilitySpell)) {
+            throw new IllegalArgumentException("Habilidade/Magia já associada ao personagem");
+        }
+
+        character.getAbilities().add(abilitySpell);
+
+        characterRepository.save(character);
+    }
+
+    @Transactional
+    @SuppressWarnings("unused")
+    public void removeAbilityFromCharacter(Authentication authentication, Long characterId, Long abilityId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+        AbilitySpell abilitySpell = abilitySpellRepository.findById(abilityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+
+        if (character.getAbilities() == null || !character.getAbilities().remove(abilitySpell)) {
+            throw new ResourceNotFoundException("Habilidade/Magia não associada ao personagem!");
+        }
+
+        characterRepository.save(character);
+    }
+
     private List<CharacterStatus> createStatusesForCampaign(Campaign campaign, Character character) {
         if (campaign == null || campaign.getStatusTemplates() == null || campaign.getStatusTemplates().isEmpty()) {
             return new java.util.ArrayList<>();
@@ -193,6 +276,13 @@ public class CharacterService {
         }
 
         character.getStatuses().addAll(createStatusesForCampaign(campaign, character));
+    }
+
+    private Character findAuthorizedCharacter(User authUser, Long characterId) {
+        Character character = characterRepository.findById(characterId)
+            .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
+        accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
+        return character;
     }
 }
 

@@ -29,9 +29,13 @@ import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
 import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
+import com.eduardo.rpg.AbilitySpell.AbilitySpell;
+import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.CharacterClass.CharacterClass;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
 import com.eduardo.rpg.CharacterStatus.CharacterStatus;
+import com.eduardo.rpg.Equipment.Equipment;
+import com.eduardo.rpg.Equipment.Repository.EquipmentRepository;
 import com.eduardo.rpg.Race.Race;
 import com.eduardo.rpg.Race.Repository.RaceRepository;
 import com.eduardo.rpg.StatusTemplate.StatusTemplate;
@@ -63,6 +67,12 @@ class CharacterServiceTest {
     private RaceRepository raceRepository;
 
     @Mock
+    private EquipmentRepository equipmentRepository;
+
+    @Mock
+    private AbilitySpellRepository abilitySpellRepository;
+
+    @Mock
     private CharacterMapper characterMapper;
 
     @Mock
@@ -76,6 +86,8 @@ class CharacterServiceTest {
     private Campaign campaign;
     private CharacterClass characterClass;
     private Race race;
+    private Equipment equipment;
+    private AbilitySpell abilitySpell;
     private Character character;
     private CharacterResponseDTO characterResponseDTO;
     private CreateCharacterRequest createCharacterRequest;
@@ -113,6 +125,17 @@ class CharacterServiceTest {
         race.setIntelligenceBonus(0);
         race.setWisdomBonus(0);
         race.setCharismaBonus(1);
+
+        equipment = new Equipment();
+        equipment.setId(1L);
+        equipment.setName("Long Sword");
+        equipment.setDescription("A sturdy sword");
+
+        abilitySpell = new AbilitySpell();
+        abilitySpell.setId(1L);
+        abilitySpell.setName("Fireball");
+        abilitySpell.setDamage("3d6");
+        abilitySpell.setEffect("Explosive fire damage");
 
         character = new Character();
         character.setId(1L);
@@ -355,6 +378,62 @@ class CharacterServiceTest {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
 
         assertThrows(ResourceNotFoundException.class, () -> characterService.deleteCharacter(authentication, 1L));
+    }
+
+    @Test
+    @DisplayName("Should add equipment to character successfully")
+    void testAddEquipmentToCharacterSuccess() {
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(equipment));
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        characterService.addEquipmentToCharacter(authentication, 1L, 1L);
+
+        assertEquals(1, character.getEquipments().size());
+        assertTrue(character.getEquipments().contains(equipment));
+        verify(characterRepository, times(1)).save(character);
+    }
+
+    @Test
+    @DisplayName("Should remove equipment from character successfully")
+    void testRemoveEquipmentFromCharacterSuccess() {
+        character.getEquipments().add(equipment);
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(equipmentRepository.findById(1L)).thenReturn(Optional.of(equipment));
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        characterService.removeEquipmentFromCharacter(authentication, 1L, 1L);
+
+        assertTrue(character.getEquipments().isEmpty());
+        verify(characterRepository, times(1)).save(character);
+    }
+
+    @Test
+    @DisplayName("Should add ability to character successfully")
+    void testAddAbilityToCharacterSuccess() {
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        characterService.addAbilityToCharacter(authentication, 1L, 1L);
+
+        assertEquals(1, character.getAbilities().size());
+        assertTrue(character.getAbilities().contains(abilitySpell));
+        verify(characterRepository, times(1)).save(character);
+    }
+
+    @Test
+    @DisplayName("Should remove ability from character successfully")
+    void testRemoveAbilityFromCharacterSuccess() {
+        character.getAbilities().add(abilitySpell);
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        characterService.removeAbilityFromCharacter(authentication, 1L, 1L);
+
+        assertTrue(character.getAbilities().isEmpty());
+        verify(characterRepository, times(1)).save(character);
     }
 }
 
