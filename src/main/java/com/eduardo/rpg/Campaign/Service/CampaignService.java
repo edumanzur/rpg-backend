@@ -123,10 +123,10 @@ public class CampaignService {
         }
 
         List<StatusTemplate> templates = new ArrayList<>();
-        for (CreateStatusTemplateRequest request : requests) {
+        for (int i = 0; i < requests.size(); i++) {
+            CreateStatusTemplateRequest request = requests.get(i);
             if (request == null) {
-                templates.add(null);
-                continue;
+                throw new IllegalArgumentException("Template de status na posição " + i + " não pode ser nulo");
             }
 
             StatusTemplate template = new StatusTemplate();

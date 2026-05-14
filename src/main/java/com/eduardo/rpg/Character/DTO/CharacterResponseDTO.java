@@ -8,24 +8,8 @@ import com.eduardo.rpg.enums.Gender;
 public record CharacterResponseDTO(
     Long id,
     String name,
-    Long raceId,
-    String raceName,
-    String raceDescription,
-    Integer strengthBonus,
-    Integer dexterityBonus,
-    Integer constitutionBonus,
-    Integer intelligenceBonus,
-    Integer wisdomBonus,
-    Integer charismaBonus,
-    Long classId,
-    String className,
-    String classDescription,
-    Integer classStrengthBonus,
-    Integer classDexterityBonus,
-    Integer classConstitutionBonus,
-    Integer classIntelligenceBonus,
-    Integer classWisdomBonus,
-    Integer classCharismaBonus,
+    RaceDTO race,
+    ClassDTO characterClass,
     CharacterRole role,
     Gender gender,
     Integer level,
@@ -35,5 +19,30 @@ public record CharacterResponseDTO(
     Long campaignId,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
-) {}
+) {
+    public record RaceDTO(
+        Long id,
+        String name,
+        String description,
+        Integer strengthBonus,
+        Integer dexterityBonus,
+        Integer constitutionBonus,
+        Integer intelligenceBonus,
+        Integer wisdomBonus,
+        Integer charismaBonus
+    ) {}
+
+    public record ClassDTO(
+        Long id,
+        String name,
+        String description,
+        Integer strengthBonus,
+        Integer dexterityBonus,
+        Integer constitutionBonus,
+        Integer intelligenceBonus,
+        Integer wisdomBonus,
+        Integer charismaBonus
+    ) {}
+}
+
 

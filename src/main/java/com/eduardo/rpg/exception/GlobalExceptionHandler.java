@@ -57,9 +57,7 @@ public class GlobalExceptionHandler {
     // Exceções do Spring Data (específicas de integridade)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorDetails> handleDataIntegrity(DataIntegrityViolationException ex) {
-        String message = ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null
-            ? ex.getMostSpecificCause().getMessage()
-            : "Este usuário ou e-mail já está cadastrado no sistema.";
+        String message = mapDataIntegrityViolation(ex);
 
         ErrorDetails error = new ErrorDetails(
             LocalDateTime.now(),
@@ -67,6 +65,34 @@ public class GlobalExceptionHandler {
             "CONFLICT"
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    private String mapDataIntegrityViolation(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause == null || cause.getMessage() == null) {
+            return "Erro de integridade de dados: os dados fornecidos conflitam com dados existentes.";
+        }
+
+        String message = cause.getMessage().toLowerCase();
+
+        // Mapeia mensagens de erro do banco para mensagens genéricas
+        if (message.contains("duplicate") || message.contains("unique")) {
+            return "Já existe um registro com esses dados. Verifique se o email, nome ou outro identificador único já foi cadastrado.";
+        }
+
+        if (message.contains("foreign key") || message.contains("fk_")) {
+            return "Não é possível executar esta operação porque existem dependências vinculadas a este registro.";
+        }
+
+        if (message.contains("not null") || message.contains("null")) {
+            return "Alguns dados obrigatórios estão faltando. Verifique todos os campos necessários.";
+        }
+
+        if (message.contains("check constraint") || message.contains("constraint")) {
+            return "Os dados fornecidos violam as regras de validação do sistema.";
+        }
+
+        return "Erro de integridade de dados: os dados fornecidos conflitam com dados existentes.";
     }
 
     // Exceções do Spring MVC (validação)

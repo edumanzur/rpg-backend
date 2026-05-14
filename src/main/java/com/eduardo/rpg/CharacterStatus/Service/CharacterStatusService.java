@@ -9,6 +9,7 @@ import com.eduardo.rpg.CharacterStatus.CharacterStatus;
 import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import com.eduardo.rpg.security.AccessControlService;
+import com.eduardo.rpg.Campaign.Service.StatusTemplateValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class CharacterStatusService {
     private final CharacterRepository characterRepository;
     private final CharacterStatusMapper characterStatusMapper;
     private final AccessControlService accessControlService;
+    private final StatusTemplateValidator statusTemplateValidator;
 
     @Transactional(readOnly = true)
     public List<CharacterStatusResponseDTO> findStatusesByCharacterId(Authentication authentication, Long characterId) {
@@ -49,29 +51,11 @@ public class CharacterStatusService {
         }
 
         accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, status.getCharacter());
-        validateValueWithinTemplateLimits(status, dto.currentValue());
+        statusTemplateValidator.validateCurrentValueWithinBounds(status.getTemplate(), dto.currentValue());
 
         status.setCurrentValue(dto.currentValue());
         CharacterStatus saved = characterStatusRepository.save(status);
         return characterStatusMapper.toResponse(saved);
-    }
-
-    private void validateValueWithinTemplateLimits(CharacterStatus status, Integer value) {
-        if (value == null) {
-            throw new IllegalArgumentException("currentValue é obrigatório");
-        }
-
-        if (status.getTemplate() == null) {
-            return;
-        }
-
-        if (status.getTemplate().getMinValue() != null && value < status.getTemplate().getMinValue()) {
-            throw new IllegalArgumentException("currentValue está abaixo do mínimo permitido");
-        }
-
-        if (status.getTemplate().getMaxValue() != null && value > status.getTemplate().getMaxValue()) {
-            throw new IllegalArgumentException("currentValue está acima do máximo permitido");
-        }
     }
 }
 

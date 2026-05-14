@@ -127,7 +127,15 @@ class CharacterServiceTest {
         character.setCampaign(campaign);
         character.setDescription("A noble ranger");
 
-        characterResponseDTO = new CharacterResponseDTO(1L, "Aragorn", 1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, 1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, null, null);
+        CharacterResponseDTO.RaceDTO raceDTO = new CharacterResponseDTO.RaceDTO(
+            1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1
+        );
+        CharacterResponseDTO.ClassDTO classDTO = new CharacterResponseDTO.ClassDTO(
+            1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0
+        );
+        characterResponseDTO = new CharacterResponseDTO(
+            1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, null, null
+        );
         createCharacterRequest = new CreateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 10, "A noble ranger");
         authentication = new UsernamePasswordAuthenticationToken("testuser", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
     }

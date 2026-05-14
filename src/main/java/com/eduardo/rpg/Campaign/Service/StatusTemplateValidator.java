@@ -47,6 +47,24 @@ public class StatusTemplateValidator {
             throw new IllegalArgumentException("O defaultValue precisa ser menor ou igual ao valor máximo");
         }
     }
+
+    public void validateCurrentValueWithinBounds(StatusTemplate template, Integer value) {
+        if (value == null) {
+            throw new IllegalArgumentException("currentValue é obrigatório");
+        }
+
+        if (template == null) {
+            return;
+        }
+
+        if (template.getMinValue() != null && value < template.getMinValue()) {
+            throw new IllegalArgumentException("currentValue está abaixo do mínimo permitido: " + template.getMinValue());
+        }
+
+        if (template.getMaxValue() != null && value > template.getMaxValue()) {
+            throw new IllegalArgumentException("currentValue está acima do máximo permitido: " + template.getMaxValue());
+        }
+    }
 }
 
 

@@ -10,27 +10,37 @@ public class CharacterMapper {
     public CharacterResponseDTO toResponse(Character character) {
         if (character == null) return null;
 
+        CharacterResponseDTO.RaceDTO raceDTO = character.getRace() != null
+            ? new CharacterResponseDTO.RaceDTO(
+                character.getRace().getId(),
+                character.getRace().getName(),
+                character.getRace().getDescription(),
+                character.getRace().getStrengthBonus(),
+                character.getRace().getDexterityBonus(),
+                character.getRace().getConstitutionBonus(),
+                character.getRace().getIntelligenceBonus(),
+                character.getRace().getWisdomBonus(),
+                character.getRace().getCharismaBonus()
+            ) : null;
+
+        CharacterResponseDTO.ClassDTO classDTO = character.getCharacterClass() != null
+            ? new CharacterResponseDTO.ClassDTO(
+                character.getCharacterClass().getId(),
+                character.getCharacterClass().getName(),
+                character.getCharacterClass().getDescription(),
+                character.getCharacterClass().getStrengthBonus(),
+                character.getCharacterClass().getDexterityBonus(),
+                character.getCharacterClass().getConstitutionBonus(),
+                character.getCharacterClass().getIntelligenceBonus(),
+                character.getCharacterClass().getWisdomBonus(),
+                character.getCharacterClass().getCharismaBonus()
+            ) : null;
+
         return new CharacterResponseDTO(
             character.getId(),
             character.getName(),
-            character.getRace() != null ? character.getRace().getId() : null,
-            character.getRace() != null ? character.getRace().getName() : null,
-            character.getRace() != null ? character.getRace().getDescription() : null,
-            character.getRace() != null ? character.getRace().getStrengthBonus() : null,
-            character.getRace() != null ? character.getRace().getDexterityBonus() : null,
-            character.getRace() != null ? character.getRace().getConstitutionBonus() : null,
-            character.getRace() != null ? character.getRace().getIntelligenceBonus() : null,
-            character.getRace() != null ? character.getRace().getWisdomBonus() : null,
-            character.getRace() != null ? character.getRace().getCharismaBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getId() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getName() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getDescription() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getStrengthBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getDexterityBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getConstitutionBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getIntelligenceBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getWisdomBonus() : null,
-            character.getCharacterClass() != null ? character.getCharacterClass().getCharismaBonus() : null,
+            raceDTO,
+            classDTO,
             character.getRole(),
             character.getGender(),
             character.getLevel(),
