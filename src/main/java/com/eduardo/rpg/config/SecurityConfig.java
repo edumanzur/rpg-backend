@@ -55,14 +55,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/users", "/users/*").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/users/*").hasRole("ADMIN")
+                // GET endpoints for races, character-classes, ability-spells, equipments são acessíveis a qualquer um autenticado
+                // POST/PUT/DELETE são protegidos por @PreAuthorize nos controllers
                 .requestMatchers(HttpMethod.GET, "/races/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/character-classes/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/ability-spells/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/equipments/**").authenticated()
-                .requestMatchers("/races/**").hasAnyRole("MASTER", "ADMIN")
-                .requestMatchers("/character-classes/**").hasAnyRole("MASTER", "ADMIN")
-                .requestMatchers("/ability-spells/**").hasAnyRole("MASTER", "ADMIN")
-                .requestMatchers("/equipments/**").hasAnyRole("MASTER", "ADMIN")
+                // POST/PUT/DELETE devem vir através de autenticação + @PreAuthorize
+                .requestMatchers(HttpMethod.POST, "/races", "/character-classes", "/ability-spells", "/equipments").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/races/**", "/character-classes/**", "/ability-spells/**", "/equipments/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/races/**", "/character-classes/**", "/ability-spells/**", "/equipments/**").authenticated()
                 .requestMatchers("/campaigns/*/status-templates/**").authenticated()
                 .requestMatchers("/characters/*/statuses/**").authenticated()
                 .requestMatchers("/campaigns/**").authenticated()
