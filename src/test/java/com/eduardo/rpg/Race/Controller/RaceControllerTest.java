@@ -36,7 +36,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser(username = "admin", roles = "ADMIN")
 @DisplayName("RaceController Integration Tests")
 class RaceControllerTest {
 
@@ -55,6 +54,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("GET /races/{id} should return race successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindRaceByIdSuccess() throws Exception {
         when(raceService.findRaceById(1L)).thenReturn(raceResponseDTO);
 
@@ -69,6 +69,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("GET /races/{id} should return 404 when race not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindRaceByIdNotFound() throws Exception {
         when(raceService.findRaceById(1L)).thenThrow(new ResourceNotFoundException("Raça não encontrada!"));
 
@@ -80,6 +81,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("GET /races should return all races")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllRacesSuccess() throws Exception {
         RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null);
         when(raceService.findAllRaces(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
@@ -95,6 +97,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("POST /races should create race successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateRaceSuccess() throws Exception {
         when(raceService.createRace(any())).thenReturn(raceResponseDTO);
 
@@ -121,6 +124,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("POST /races should handle conflict")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateRaceConflict() throws Exception {
         when(raceService.createRace(any())).thenThrow(new IllegalArgumentException("Já existe uma raça com este nome"));
 
@@ -144,6 +148,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("PUT /races/{id} should update race successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateRaceSuccess() throws Exception {
         when(raceService.updateRace(eq(1L), any())).thenReturn(raceResponseDTO);
 
@@ -169,6 +174,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("DELETE /races/{id} should delete race successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteRaceSuccess() throws Exception {
         doNothing().when(raceService).deleteRace(1L);
 
@@ -180,6 +186,7 @@ class RaceControllerTest {
 
     @Test
     @DisplayName("DELETE /races/{id} should return 404 when race not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteRaceNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Raça não encontrada!"))
             .when(raceService).deleteRace(1L);
@@ -188,6 +195,68 @@ class RaceControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code", is("NOT_FOUND")))
             .andExpect(jsonPath("$.message", is("Raça não encontrada!")));
+    }
+
+    @Test
+    @DisplayName("POST /races should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testCreateRaceWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(post("/races")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Human",
+                        "description": "Versatile and resilient",
+                        "strengthBonus": 1,
+                        "dexterityBonus": 1,
+                        "constitutionBonus": 0,
+                        "intelligenceBonus": 0,
+                        "wisdomBonus": 0,
+                        "charismaBonus": 1
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /races/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testUpdateRaceWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(put("/races/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Human",
+                        "description": "Versatile and resilient",
+                        "strengthBonus": 2,
+                        "dexterityBonus": 1,
+                        "constitutionBonus": 0,
+                        "intelligenceBonus": 0,
+                        "wisdomBonus": 0,
+                        "charismaBonus": 1
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("DELETE /races/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testDeleteRaceWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(delete("/races/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /races should be accessible with PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testGetRacesWithPlayerRoShouldSucceed() throws Exception {
+        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null);
+        when(raceService.findAllRaces(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
+
+        mockMvc.perform(get("/races?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)));
     }
 }
 

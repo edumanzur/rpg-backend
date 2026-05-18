@@ -37,7 +37,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser(username = "admin", roles = "ADMIN")
 @DisplayName("AbilitySpellController Integration Tests")
 class AbilitySpellControllerTest {
 
@@ -69,6 +68,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("GET /ability-spells/{id} should return ability successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAbilitySpellByIdSuccess() throws Exception {
         when(abilitySpellService.findAbilitySpellById(1L)).thenReturn(abilitySpellResponseDTO);
 
@@ -84,6 +84,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("GET /ability-spells/{id} should return 404 when ability not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAbilitySpellByIdNotFound() throws Exception {
         when(abilitySpellService.findAbilitySpellById(1L)).thenThrow(new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
 
@@ -95,6 +96,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("GET /ability-spells should return all abilities")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllAbilitySpellsSuccess() throws Exception {
         AbilitySpellResponseDTO second = new AbilitySpellResponseDTO(
             2L,
@@ -123,6 +125,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("POST /ability-spells should create ability successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateAbilitySpellSuccess() throws Exception {
         when(abilitySpellService.createAbilitySpell(any())).thenReturn(abilitySpellResponseDTO);
 
@@ -162,6 +165,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("POST /ability-spells should handle conflict")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateAbilitySpellConflict() throws Exception {
         when(abilitySpellService.createAbilitySpell(any())).thenThrow(new IllegalArgumentException("Já existe uma habilidade/magia com este nome"));
 
@@ -186,6 +190,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("PUT /ability-spells/{id} should update ability successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateAbilitySpellSuccess() throws Exception {
         when(abilitySpellService.updateAbilitySpell(eq(1L), any())).thenReturn(abilitySpellResponseDTO);
 
@@ -212,6 +217,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("DELETE /ability-spells/{id} should delete ability successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteAbilitySpellSuccess() throws Exception {
         doNothing().when(abilitySpellService).deleteAbilitySpell(1L);
 
@@ -223,6 +229,7 @@ class AbilitySpellControllerTest {
 
     @Test
     @DisplayName("DELETE /ability-spells/{id} should return 404 when ability not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteAbilitySpellNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Habilidade/Magia não encontrada!"))
             .when(abilitySpellService).deleteAbilitySpell(1L);
@@ -232,5 +239,81 @@ class AbilitySpellControllerTest {
             .andExpect(jsonPath("$.code", is("NOT_FOUND")))
             .andExpect(jsonPath("$.message", is("Habilidade/Magia não encontrada!")));
     }
-}
 
+    @Test
+    @DisplayName("POST /ability-spells should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testCreateAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(post("/ability-spells")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Fireball",
+                        "damage": "3d6",
+                        "effect": "Explosive fire damage",
+                        "mainStatus": "Burn",
+                        "description": "A powerful fire spell",
+                        "cost": "1 action",
+                        "costType": "ACTION",
+                        "requiredLevel": 3,
+                        "requirements": []
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /ability-spells/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testUpdateAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(put("/ability-spells/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Fireball",
+                        "damage": "3d6",
+                        "effect": "Explosive fire damage",
+                        "mainStatus": "Burn",
+                        "description": "A powerful fire spell",
+                        "cost": "1 action",
+                        "costType": "ACTION",
+                        "requiredLevel": 3,
+                        "requirements": []
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("DELETE /ability-spells/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testDeleteAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(delete("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /ability-spells should be accessible with PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testGetAbilitySpellsWithPlayerRoleShouldSucceed() throws Exception {
+        AbilitySpellResponseDTO second = new AbilitySpellResponseDTO(
+            2L,
+            "Ice Bolt",
+            "2d8",
+            "Cold damage",
+            "Freeze",
+            "A cold spell",
+            "1 action",
+            CostType.ACTION,
+            2,
+            List.of(),
+            null,
+            null
+        );
+        when(abilitySpellService.findAllAbilitySpells(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(abilitySpellResponseDTO, second)));
+
+        mockMvc.perform(get("/ability-spells?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)));
+    }
+}

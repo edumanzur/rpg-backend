@@ -36,7 +36,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser(username = "admin", roles = "ADMIN")
 @DisplayName("EquipmentController Integration Tests")
 class EquipmentControllerTest {
 
@@ -70,6 +69,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("GET /equipments/{id} should return equipment successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindEquipmentByIdSuccess() throws Exception {
         when(equipmentService.findEquipmentById(1L)).thenReturn(equipmentResponseDTO);
 
@@ -85,6 +85,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("GET /equipments/{id} should return 404 when equipment not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindEquipmentByIdNotFound() throws Exception {
         when(equipmentService.findEquipmentById(1L)).thenThrow(new ResourceNotFoundException("Equipamento não encontrado!"));
 
@@ -96,6 +97,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("GET /equipments should return all equipments")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllEquipmentsSuccess() throws Exception {
         EquipmentResponseDTO second = new EquipmentResponseDTO(
             2L,
@@ -126,6 +128,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("POST /equipments should create equipment successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateEquipmentSuccess() throws Exception {
         when(equipmentService.createEquipment(any())).thenReturn(equipmentResponseDTO);
 
@@ -166,6 +169,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("POST /equipments should handle conflict")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateEquipmentConflict() throws Exception {
         when(equipmentService.createEquipment(any())).thenThrow(new IllegalArgumentException("Já existe um equipamento com este nome"));
 
@@ -192,6 +196,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("PUT /equipments/{id} should update equipment successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateEquipmentSuccess() throws Exception {
         when(equipmentService.updateEquipment(eq(1L), any())).thenReturn(equipmentResponseDTO);
 
@@ -220,6 +225,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("DELETE /equipments/{id} should delete equipment successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteEquipmentSuccess() throws Exception {
         doNothing().when(equipmentService).deleteEquipment(1L);
 
@@ -231,6 +237,7 @@ class EquipmentControllerTest {
 
     @Test
     @DisplayName("DELETE /equipments/{id} should return 404 when equipment not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteEquipmentNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Equipamento não encontrado!"))
             .when(equipmentService).deleteEquipment(1L);
@@ -240,5 +247,87 @@ class EquipmentControllerTest {
             .andExpect(jsonPath("$.code", is("NOT_FOUND")))
             .andExpect(jsonPath("$.message", is("Equipamento não encontrado!")));
     }
-}
 
+    @Test
+    @DisplayName("POST /equipments should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testCreateEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(post("/equipments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Long Sword",
+                        "description": "A sturdy sword",
+                        "type": "WEAPON",
+                        "damage": "2d8",
+                        "strengthBonus": 2,
+                        "dexterityBonus": 0,
+                        "constitutionBonus": 0,
+                        "intelligenceBonus": 0,
+                        "wisdomBonus": 0,
+                        "charismaBonus": 0,
+                        "requirements": []
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PUT /equipments/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testUpdateEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(put("/equipments/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "name": "Long Sword",
+                        "description": "A sturdier sword",
+                        "type": "WEAPON",
+                        "damage": "2d10",
+                        "strengthBonus": 3,
+                        "dexterityBonus": 0,
+                        "constitutionBonus": 0,
+                        "intelligenceBonus": 0,
+                        "wisdomBonus": 0,
+                        "charismaBonus": 0,
+                        "requirements": []
+                    }
+                    """))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("DELETE /equipments/{id} should return 403 when user has PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testDeleteEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        mockMvc.perform(delete("/equipments/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /equipments should be accessible with PLAYER role")
+    @WithMockUser(username = "player", roles = "PLAYER")
+    void testGetEquipmentsWithPlayerRoleShouldSucceed() throws Exception {
+        EquipmentResponseDTO second = new EquipmentResponseDTO(
+            2L,
+            "Leather Armor",
+            "Light armor",
+            com.eduardo.rpg.enums.EquipmentType.ARMOR,
+            null,
+            0,
+            1,
+            2,
+            0,
+            0,
+            0,
+            List.of(),
+            null,
+            null
+        );
+        when(equipmentService.findAllEquipments(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(equipmentResponseDTO, second)));
+
+        mockMvc.perform(get("/equipments?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content", hasSize(2)));
+    }
+}

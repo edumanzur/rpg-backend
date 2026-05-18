@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,12 +42,14 @@ public class CharacterClassController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<CharacterClassResponseDTO> createCharacterClass(@RequestBody @Valid CreateCharacterClassRequest dto) {
         CharacterClassResponseDTO response = characterClassService.createCharacterClass(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<CharacterClassResponseDTO> updateCharacterClass(
         @PathVariable Long id,
         @RequestBody @Valid UpdateCharacterClassRequest dto) {
@@ -55,12 +58,14 @@ public class CharacterClassController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<Void> deleteCharacterClass(@PathVariable Long id) {
         characterClassService.deleteCharacterClass(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/abilities/{abilityId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<Void> addAbilityToClass(@PathVariable Long id, @PathVariable Long abilityId) {
         characterClassService.addAbilityToClass(id, abilityId);
         return ResponseEntity.noContent().build();

@@ -17,6 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -46,6 +48,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("GET /users/{id} should return user successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindUserByIdSuccess() throws Exception {
         when(userService.findUserById(1L)).thenReturn(userResponseDTO);
 
@@ -62,6 +65,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("GET /users/{id} should return 404 when user not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindUserByIdNotFound() throws Exception {
         when(userService.findUserById(1L))
             .thenThrow(new ResourceNotFoundException("Usuário não encontrado!"));
@@ -75,6 +79,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("GET /users should return all users")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllUsersSuccess() throws Exception {
         UserResponseDTO user2 = new UserResponseDTO(2L, "testuser2", "test2@example.com", Role.PLAYER, null);
         when(userService.findAllUsers(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(userResponseDTO, user2)));
@@ -93,6 +98,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("GET /users should return empty list when no users exist")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllUsersEmpty() throws Exception {
         when(userService.findAllUsers(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of()));
 
@@ -126,6 +132,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("POST /users should handle conflict when user already exists")
+    @WithMockUser(username = "anonymous", roles = {"ANONYMOUS"})
     void testCreateUserWithExistingUser() throws Exception {
         when(userService.createUser(any()))
             .thenThrow(new com.eduardo.rpg.exception.UserAlreadyExistsException("Username already exists"));
@@ -144,6 +151,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("DELETE /users/{id} should delete user successfully")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteUserSuccess() throws Exception {
         doNothing().when(userService).deleteUser(1L);
 
@@ -156,6 +164,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("DELETE /users/{id} should return 404 when user not found")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteUserNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Usuário não encontrado!"))
             .when(userService).deleteUser(1L);
@@ -165,6 +174,57 @@ class UserControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.code", is("NOT_FOUND")))
             .andExpect(jsonPath("$.message", is("Usuário não encontrado!")));
+    }
+
+    @Test
+    @WithMockUser(username = "player", roles = "PLAYER")
+    @DisplayName("GET /users/{id} should return 403 when user has PLAYER role")
+    void testFindUserByIdForbiddenWhenPlayer() throws Exception {
+        mockMvc.perform(get("/users/1")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+
+        verify(userService, never()).findUserById(any());
+    }
+
+    @Test
+    @WithMockUser(username = "player", roles = "PLAYER")
+    @DisplayName("GET /users should return 403 when user has PLAYER role")
+    void testFindAllUsersForbiddenWhenPlayer() throws Exception {
+        mockMvc.perform(get("/users?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+
+        verify(userService, never()).findAllUsers(any());
+    }
+
+    @Test
+    @WithMockUser(username = "player", roles = "PLAYER")
+    @DisplayName("DELETE /users/{id} should return 403 when user has PLAYER role")
+    void testDeleteUserForbiddenWhenPlayer() throws Exception {
+        mockMvc.perform(delete("/users/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isForbidden());
+
+        verify(userService, never()).deleteUser(any());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("GET /users should require authentication")
+    void testFindAllUsersUnauthorizedWhenAnonymous() throws Exception {
+        mockMvc.perform(get("/users?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
+
+        verify(userService, never()).findAllUsers(any());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("DELETE /users/{id} should require authentication")
+    void testDeleteUserUnauthorizedWhenAnonymous() throws Exception {
+        mockMvc.perform(delete("/users/1").contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnauthorized());
+
+        verify(userService, never()).deleteUser(any());
     }
 }
 

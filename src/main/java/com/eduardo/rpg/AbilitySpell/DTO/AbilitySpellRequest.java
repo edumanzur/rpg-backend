@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
-public record UpdateAbilitySpellRequest(
+public record AbilitySpellRequest(
     @NotBlank(message = "Ability name is required")
     String name,
     String damage,

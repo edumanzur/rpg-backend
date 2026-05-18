@@ -40,15 +40,18 @@ public class CharacterStatusService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public CharacterStatusResponseDTO findCharacterStatusById(Authentication authentication, Long characterId, Long statusId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        CharacterStatus status = findStatusByCharacterAndId(characterId, statusId);
+        accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, status.getCharacter());
+        return characterStatusMapper.toResponse(status);
+    }
+
     @Transactional
     public CharacterStatusResponseDTO updateCharacterStatus(Authentication authentication, Long characterId, Long statusId, UpdateCharacterStatusRequest dto) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        CharacterStatus status = characterStatusRepository.findById(statusId)
-            .orElseThrow(() -> new ResourceNotFoundException("Status do personagem não encontrado!"));
-
-        if (status.getCharacter() == null || !characterId.equals(status.getCharacter().getId())) {
-            throw new ResourceNotFoundException("Status do personagem não encontrado!");
-        }
+        CharacterStatus status = findStatusByCharacterAndId(characterId, statusId);
 
         accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, status.getCharacter());
         statusTemplateValidator.validateCurrentValueWithinBounds(status.getTemplate(), dto.currentValue());
@@ -56,6 +59,17 @@ public class CharacterStatusService {
         status.setCurrentValue(dto.currentValue());
         CharacterStatus saved = characterStatusRepository.save(status);
         return characterStatusMapper.toResponse(saved);
+    }
+
+    private CharacterStatus findStatusByCharacterAndId(Long characterId, Long statusId) {
+        CharacterStatus status = characterStatusRepository.findById(statusId)
+            .orElseThrow(() -> new ResourceNotFoundException("Status do personagem não encontrado!"));
+
+        if (status.getCharacter() == null || !characterId.equals(status.getCharacter().getId())) {
+            throw new ResourceNotFoundException("Status do personagem não encontrado!");
+        }
+
+        return status;
     }
 }
 

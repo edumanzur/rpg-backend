@@ -435,7 +435,39 @@ class CharacterServiceTest {
         assertTrue(character.getAbilities().isEmpty());
         verify(characterRepository, times(1)).save(character);
     }
+
+    @Test
+    @DisplayName("Should validate ability usage successfully")
+    void testValidateAbilityUsageSuccess() {
+        AbilitySpell ability = new AbilitySpell();
+        ability.setId(1L);
+        ability.setName("Fireball");
+
+        when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+        doNothing().when(accessControlService).requireCharacterOwnerCampaignOrAdmin(user, character);
+        when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(ability));
+
+        var result = characterService.validateAbilityUsage(authentication, 1L, 1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.characterId());
+        assertEquals(1L, result.abilityId());
+        assertEquals("Fireball", result.abilityName());
+    }
+
+    @Test
+    @DisplayName("Should find characters by user id with pagination")
+    void testFindCharactersByUserIdWithPaginationSuccess() {
+        Page<Character> page = new PageImpl<>(List.of(character), PageRequest.of(0, 10), 1);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(characterRepository.findByUserId(1L, PageRequest.of(0, 10))).thenReturn(page);
+        when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+
+        Page<CharacterResponseDTO> result = characterService.findCharactersByUserId(authentication, 1L, PageRequest.of(0, 10));
+
+        assertEquals(1, result.getContent().size());
+        verify(characterRepository, times(1)).findByUserId(1L, PageRequest.of(0, 10));
+    }
 }
-
-
-

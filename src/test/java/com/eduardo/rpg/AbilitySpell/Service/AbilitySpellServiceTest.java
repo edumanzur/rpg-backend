@@ -14,9 +14,8 @@ import java.util.Optional;
 
 import com.eduardo.rpg.AbilitySpell.AbilitySpell;
 import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellMapper;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellRequest;
 import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellResponseDTO;
-import com.eduardo.rpg.AbilitySpell.DTO.CreateAbilitySpellRequest;
-import com.eduardo.rpg.AbilitySpell.DTO.UpdateAbilitySpellRequest;
 import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.CharacterClass.CharacterClass;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
@@ -52,7 +51,7 @@ class AbilitySpellServiceTest {
 
     private AbilitySpell abilitySpell;
     private AbilitySpellResponseDTO abilitySpellResponseDTO;
-    private CreateAbilitySpellRequest createAbilitySpellRequest;
+    private AbilitySpellRequest createAbilitySpellRequest;
     private CharacterClass mageClass;
 
     @BeforeEach
@@ -87,7 +86,7 @@ class AbilitySpellServiceTest {
             null
         );
 
-        createAbilitySpellRequest = new CreateAbilitySpellRequest(
+        createAbilitySpellRequest = new AbilitySpellRequest(
             "Fireball",
             "3d6",
             "Explosive fire damage",
@@ -96,7 +95,7 @@ class AbilitySpellServiceTest {
             "1 action",
             CostType.ACTION,
             3,
-            List.of(new CreateAbilitySpellRequest.RequirementRequest(1L, 3, 0, 0, 0, 2, 0, 0))
+            List.of(new AbilitySpellRequest.RequirementRequest(1L, 3, 0, 0, 0, 2, 0, 0))
         );
     }
 
@@ -133,7 +132,7 @@ class AbilitySpellServiceTest {
     @Test
     @DisplayName("Should throw ResourceNotFoundException when required class is missing")
     void testCreateAbilitySpellRequirementClassNotFound() {
-        CreateAbilitySpellRequest request = new CreateAbilitySpellRequest(
+        AbilitySpellRequest request = new AbilitySpellRequest(
             "Fireball",
             "3d6",
             "Explosive fire damage",
@@ -142,7 +141,7 @@ class AbilitySpellServiceTest {
             "1 action",
             CostType.ACTION,
             3,
-            List.of(new CreateAbilitySpellRequest.RequirementRequest(99L, 3, 0, 0, 0, 2, 0, 0))
+            List.of(new AbilitySpellRequest.RequirementRequest(99L, 3, 0, 0, 0, 2, 0, 0))
         );
 
         when(abilitySpellRepository.findByNameIgnoreCase("Fireball")).thenReturn(Optional.empty());
@@ -155,9 +154,9 @@ class AbilitySpellServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when requirement is null")
     void testCreateAbilitySpellNullRequirement() {
-        List<CreateAbilitySpellRequest.RequirementRequest> requirements = new java.util.AbstractList<>() {
+        List<AbilitySpellRequest.RequirementRequest> requirements = new java.util.AbstractList<>() {
             @Override
-            public CreateAbilitySpellRequest.RequirementRequest get(int index) {
+            public AbilitySpellRequest.RequirementRequest get(int index) {
                 return null;
             }
 
@@ -167,7 +166,7 @@ class AbilitySpellServiceTest {
             }
         };
 
-        CreateAbilitySpellRequest request = new CreateAbilitySpellRequest(
+        AbilitySpellRequest request = new AbilitySpellRequest(
             "Fireball",
             "3d6",
             "Explosive fire damage",
@@ -183,12 +182,6 @@ class AbilitySpellServiceTest {
         when(abilitySpellMapper.toEntity(request)).thenReturn(new AbilitySpell());
 
         assertThrows(IllegalArgumentException.class, () -> abilitySpellService.createAbilitySpell(request));
-    }
-
-    @Test
-    @DisplayName("Should throw ResourceNotFoundException when id is null")
-    void testFindAbilitySpellByIdNull() {
-        assertThrows(ResourceNotFoundException.class, () -> abilitySpellService.findAbilitySpellById(null));
     }
 
     @Test
@@ -232,7 +225,7 @@ class AbilitySpellServiceTest {
     @Test
     @DisplayName("Should update ability successfully")
     void testUpdateAbilitySpellSuccess() {
-        UpdateAbilitySpellRequest updateRequest = new UpdateAbilitySpellRequest(
+        AbilitySpellRequest updateRequest = new AbilitySpellRequest(
             "Fireball",
             "4d6",
             "Stronger fire damage",
@@ -241,7 +234,7 @@ class AbilitySpellServiceTest {
             "1 action",
             CostType.ACTION,
             4,
-            List.of(new UpdateAbilitySpellRequest.RequirementRequest(1L, 4, 0, 0, 0, 2, 0, 0))
+            List.of(new AbilitySpellRequest.RequirementRequest(1L, 4, 0, 0, 0, 2, 0, 0))
         );
 
         AbilitySpell updatedAbility = new AbilitySpell();
@@ -265,7 +258,7 @@ class AbilitySpellServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when updating to duplicate ability name")
     void testUpdateAbilitySpellDuplicateName() {
-        UpdateAbilitySpellRequest updateRequest = new UpdateAbilitySpellRequest(
+        AbilitySpellRequest updateRequest = new AbilitySpellRequest(
             "Ice Bolt",
             "2d8",
             "Cold damage",

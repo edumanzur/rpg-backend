@@ -30,6 +30,14 @@ public class CharacterStatusController {
         return ResponseEntity.ok(characterStatusService.findStatusesByCharacterId(authentication, characterId));
     }
 
+    @GetMapping("/{statusId}")
+    public ResponseEntity<CharacterStatusResponseDTO> findById(
+        Authentication authentication,
+        @PathVariable Long characterId,
+        @PathVariable Long statusId) {
+        return ResponseEntity.ok(characterStatusService.findCharacterStatusById(authentication, characterId, statusId));
+    }
+
     @PatchMapping("/{statusId}")
     public ResponseEntity<CharacterStatusResponseDTO> update(Authentication authentication, @PathVariable Long characterId, @PathVariable Long statusId, @RequestBody @Valid UpdateCharacterStatusRequest dto) {
         return ResponseEntity.ok(characterStatusService.updateCharacterStatus(authentication, characterId, statusId, dto));

@@ -5,6 +5,7 @@ import com.eduardo.rpg.Campaign.DTO.CampaignMapper;
 import com.eduardo.rpg.Campaign.DTO.CampaignResponseDTO;
 import com.eduardo.rpg.Campaign.DTO.CreateCampaignRequest;
 import com.eduardo.rpg.Campaign.DTO.CreateStatusTemplateRequest;
+import com.eduardo.rpg.Campaign.DTO.StatusTemplateMapper;
 import com.eduardo.rpg.Campaign.DTO.UpdateCampaignRequest;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.StatusTemplate.StatusTemplate;
@@ -30,6 +31,7 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final UserRepository userRepository;
     private final CampaignMapper campaignMapper;
+    private final StatusTemplateMapper statusTemplateMapper;
     private final AccessControlService accessControlService;
     private final StatusTemplateValidator statusTemplateValidator;
 
@@ -83,6 +85,21 @@ public class CampaignService {
     }
 
     @Transactional(readOnly = true)
+    public Page<CampaignResponseDTO> findCampaignsByMasterId(Authentication authentication, Long masterId, Pageable pageable) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireMasterOrAdmin(authUser);
+        if (!accessControlService.isAdmin(authUser)) {
+            accessControlService.requireSameUserOrAdmin(authUser, masterId);
+        }
+
+        userRepository.findById(masterId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
+
+        return campaignRepository.findByMasterId(masterId, pageable)
+            .map(campaignMapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
     public Page<CampaignResponseDTO> findAllCampaigns(Authentication authentication, Pageable pageable) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
         accessControlService.requireMasterOrAdmin(authUser);
@@ -129,12 +146,7 @@ public class CampaignService {
                 throw new IllegalArgumentException("Template de status na posição " + i + " não pode ser nulo");
             }
 
-            StatusTemplate template = new StatusTemplate();
-            template.setName(request.name());
-            template.setDescription(request.description());
-            template.setDefaultValue(request.defaultValue());
-            template.setMinValue(request.minValue());
-            template.setMaxValue(request.maxValue());
+            StatusTemplate template = statusTemplateMapper.toEntity(request);
             template.setCampaign(campaign);
             templates.add(template);
         }

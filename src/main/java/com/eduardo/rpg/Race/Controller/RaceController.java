@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,12 +42,14 @@ public class RaceController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<RaceResponseDTO> createRace(@RequestBody @Valid CreateRaceRequest dto) {
         RaceResponseDTO response = raceService.createRace(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<RaceResponseDTO> updateRace(
         @PathVariable Long id,
         @RequestBody @Valid UpdateRaceRequest dto) {
@@ -55,6 +58,7 @@ public class RaceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MASTER')")
     public ResponseEntity<Void> deleteRace(@PathVariable Long id) {
         raceService.deleteRace(id);
         return ResponseEntity.noContent().build();

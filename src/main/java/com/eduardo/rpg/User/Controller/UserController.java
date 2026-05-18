@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +32,7 @@ public class UserController {
 
     //Encontra o usuario pelo id
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponseDTO> findUserById(@PathVariable Long id) {
         UserResponseDTO response = userService.findUserById(id);
         return ResponseEntity.ok(response);
@@ -38,6 +40,7 @@ public class UserController {
     
     //Encontra todos os usuarios
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<UserResponseDTO>> findAllUsers(Pageable pageable) {
         Page<UserResponseDTO> response = userService.findAllUsers(pageable);
         return ResponseEntity.ok(response);
@@ -54,6 +57,7 @@ public class UserController {
     
     //Deleta o usuario
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
 

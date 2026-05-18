@@ -2,9 +2,8 @@ package com.eduardo.rpg.AbilitySpell.Service;
 
 import com.eduardo.rpg.AbilitySpell.AbilitySpell;
 import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellMapper;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellRequest;
 import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellResponseDTO;
-import com.eduardo.rpg.AbilitySpell.DTO.CreateAbilitySpellRequest;
-import com.eduardo.rpg.AbilitySpell.DTO.UpdateAbilitySpellRequest;
 import com.eduardo.rpg.AbilitySpell.Requirement.AbilityRequirement;
 import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
@@ -27,7 +26,7 @@ public class AbilitySpellService {
     private final AbilitySpellMapper abilitySpellMapper;
 
     @Transactional
-    public AbilitySpellResponseDTO createAbilitySpell(CreateAbilitySpellRequest dto) {
+    public AbilitySpellResponseDTO createAbilitySpell(AbilitySpellRequest dto) {
         validateNameAvailability(dto.name(), null);
 
         AbilitySpell abilitySpell = abilitySpellMapper.toEntity(dto);
@@ -38,10 +37,6 @@ public class AbilitySpellService {
 
     @Transactional(readOnly = true)
     public AbilitySpellResponseDTO findAbilitySpellById(Long id) {
-        if (id == null) {
-            throw new ResourceNotFoundException("Habilidade/Magia não encontrada!");
-        }
-
         AbilitySpell abilitySpell = abilitySpellRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
         return abilitySpellMapper.toResponse(abilitySpell);
@@ -54,7 +49,7 @@ public class AbilitySpellService {
     }
 
     @Transactional
-    public AbilitySpellResponseDTO updateAbilitySpell(Long id, UpdateAbilitySpellRequest dto) {
+    public AbilitySpellResponseDTO updateAbilitySpell(Long id, AbilitySpellRequest dto) {
         AbilitySpell abilitySpell = abilitySpellRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
 
@@ -88,11 +83,11 @@ public class AbilitySpellService {
             });
     }
 
-    private List<AbilityRequirement> mapRequirements(AbilitySpell abilitySpell, List<CreateAbilitySpellRequest.RequirementRequest> requests) {
+    private List<AbilityRequirement> mapRequirements(AbilitySpell abilitySpell, List<AbilitySpellRequest.RequirementRequest> requests) {
         return RequirementMapperHelper.mapRequirements(
             requests,
             "habilidade",
-            CreateAbilitySpellRequest.RequirementRequest::requiredClassId,
+            AbilitySpellRequest.RequirementRequest::requiredClassId,
             classId -> characterClassRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!")),
             (request, requiredClass) -> {
@@ -111,33 +106,14 @@ public class AbilitySpellService {
         );
     }
 
-    private void replaceRequirements(AbilitySpell abilitySpell, List<UpdateAbilitySpellRequest.RequirementRequest> requests) {
+    private void replaceRequirements(AbilitySpell abilitySpell, List<AbilitySpellRequest.RequirementRequest> requests) {
         if (abilitySpell.getRequirements() == null) {
             abilitySpell.setRequirements(new java.util.ArrayList<>());
         } else {
             abilitySpell.getRequirements().clear();
         }
 
-        abilitySpell.getRequirements().addAll(RequirementMapperHelper.mapRequirements(
-            requests,
-            "habilidade",
-            UpdateAbilitySpellRequest.RequirementRequest::requiredClassId,
-            classId -> characterClassRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!")),
-            (request, requiredClass) -> {
-                AbilityRequirement requirement = new AbilityRequirement();
-                requirement.setAbility(abilitySpell);
-                requirement.setRequiredClass(requiredClass);
-                requirement.setMinLevel(normalize(request.minLevel()));
-                requirement.setMinStrength(normalize(request.minStrength()));
-                requirement.setMinDexterity(normalize(request.minDexterity()));
-                requirement.setMinConstitution(normalize(request.minConstitution()));
-                requirement.setMinIntelligence(normalize(request.minIntelligence()));
-                requirement.setMinWisdom(normalize(request.minWisdom()));
-                requirement.setMinCharisma(normalize(request.minCharisma()));
-                return requirement;
-            }
-        ));
+        abilitySpell.getRequirements().addAll(mapRequirements(abilitySpell, requests));
     }
 
     private Integer normalize(Integer value) {

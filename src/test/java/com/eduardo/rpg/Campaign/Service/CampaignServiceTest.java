@@ -25,6 +25,7 @@ import com.eduardo.rpg.Campaign.Campaign;
 import com.eduardo.rpg.Campaign.DTO.CampaignMapper;
 import com.eduardo.rpg.Campaign.DTO.CampaignResponseDTO;
 import com.eduardo.rpg.Campaign.DTO.CreateCampaignRequest;
+import com.eduardo.rpg.Campaign.DTO.StatusTemplateMapper;
 import com.eduardo.rpg.Campaign.DTO.UpdateCampaignRequest;
 import com.eduardo.rpg.Campaign.Repository.CampaignRepository;
 import com.eduardo.rpg.User.Domains.User;
@@ -45,6 +46,9 @@ class CampaignServiceTest {
 
     @Mock
     private CampaignMapper campaignMapper;
+
+    @Mock
+    private StatusTemplateMapper statusTemplateMapper;
 
     @Mock
     private AccessControlService accessControlService;

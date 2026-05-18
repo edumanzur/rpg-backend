@@ -155,11 +155,6 @@ class EquipmentServiceTest {
         assertThrows(IllegalArgumentException.class, () -> equipmentService.createEquipment(request));
     }
 
-    @Test
-    @DisplayName("Should throw ResourceNotFoundException when equipment id is null")
-    void testFindEquipmentByIdNull() {
-        assertThrows(ResourceNotFoundException.class, () -> equipmentService.findEquipmentById(null));
-    }
 
     @Test
     @DisplayName("Should find equipment by id successfully")

@@ -3,6 +3,8 @@ package com.eduardo.rpg.Character.Service;
 import com.eduardo.rpg.Character.Character;
 import com.eduardo.rpg.Character.DTO.CharacterMapper;
 import com.eduardo.rpg.Character.DTO.CharacterResponseDTO;
+import com.eduardo.rpg.Character.DTO.CharacterAbilityValidationDTO;
+import com.eduardo.rpg.Character.DTO.CharacterEquipmentValidationDTO;
 import com.eduardo.rpg.Character.DTO.CreateCharacterRequest;
 import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Repository.CharacterRepository;
@@ -107,6 +109,18 @@ public class CharacterService {
             .stream()
             .map(characterMapper::toResponse)
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CharacterResponseDTO> findCharactersByUserId(Authentication authentication, Long userId, Pageable pageable) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireSameUserOrAdmin(authUser, userId);
+
+        userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
+
+        return characterRepository.findByUserId(userId, pageable)
+            .map(characterMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -283,6 +297,142 @@ public class CharacterService {
             .orElseThrow(() -> new ResourceNotFoundException("Personagem não encontrado!"));
         accessControlService.requireCharacterOwnerCampaignOrAdmin(authUser, character);
         return character;
+    }
+
+    @Transactional(readOnly = true)
+    public CharacterAbilityValidationDTO validateAbilityUsage(Authentication authentication, Long characterId, Long abilityId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+
+        AbilitySpell ability = abilitySpellRepository.findById(abilityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+
+        List<CharacterAbilityValidationDTO.RequirementCheckDTO> checks = new ArrayList<>();
+        boolean canUse = true;
+
+        for (var requirement : ability.getRequirements()) {
+            boolean meetsLevel = requirement.getMinLevel() == null || character.getLevel() >= requirement.getMinLevel();
+            boolean meetsStrength = requirement.getMinStrength() == null || getCharacterStat(character, "strength") >= requirement.getMinStrength();
+            boolean meetsDexterity = requirement.getMinDexterity() == null || getCharacterStat(character, "dexterity") >= requirement.getMinDexterity();
+            boolean meetsConstitution = requirement.getMinConstitution() == null || getCharacterStat(character, "constitution") >= requirement.getMinConstitution();
+            boolean meetsIntelligence = requirement.getMinIntelligence() == null || getCharacterStat(character, "intelligence") >= requirement.getMinIntelligence();
+            boolean meetsWisdom = requirement.getMinWisdom() == null || getCharacterStat(character, "wisdom") >= requirement.getMinWisdom();
+            boolean meetsCharisma = requirement.getMinCharisma() == null || getCharacterStat(character, "charisma") >= requirement.getMinCharisma();
+
+            boolean canUseForThisClass = character.getCharacterClass().getId().equals(requirement.getRequiredClass().getId()) &&
+                meetsLevel && meetsStrength && meetsDexterity && meetsConstitution && meetsIntelligence && meetsWisdom && meetsCharisma;
+
+            if (!canUseForThisClass) {
+                canUse = false;
+            }
+
+            checks.add(new CharacterAbilityValidationDTO.RequirementCheckDTO(
+                requirement.getRequiredClass().getName(),
+                meetsLevel,
+                requirement.getMinLevel(),
+                character.getLevel(),
+                meetsStrength,
+                requirement.getMinStrength(),
+                getCharacterStat(character, "strength"),
+                meetsDexterity,
+                requirement.getMinDexterity(),
+                getCharacterStat(character, "dexterity"),
+                meetsConstitution,
+                requirement.getMinConstitution(),
+                getCharacterStat(character, "constitution"),
+                meetsIntelligence,
+                requirement.getMinIntelligence(),
+                getCharacterStat(character, "intelligence"),
+                meetsWisdom,
+                requirement.getMinWisdom(),
+                getCharacterStat(character, "wisdom"),
+                meetsCharisma,
+                requirement.getMinCharisma(),
+                getCharacterStat(character, "charisma"),
+                canUseForThisClass
+            ));
+        }
+
+        return new CharacterAbilityValidationDTO(characterId, abilityId, ability.getName(), canUse, checks);
+    }
+
+    @Transactional(readOnly = true)
+    public CharacterEquipmentValidationDTO validateEquipmentUsage(Authentication authentication, Long characterId, Long equipmentId) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+        Character character = findAuthorizedCharacter(authUser, characterId);
+
+        Equipment equipment = equipmentRepository.findById(equipmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Equipamento não encontrado!"));
+
+        List<CharacterEquipmentValidationDTO.RequirementCheckDTO> checks = new ArrayList<>();
+        boolean canEquip = true;
+
+        for (var requirement : equipment.getRequirements()) {
+            boolean meetsStrength = requirement.getMinStrength() == null || getCharacterStat(character, "strength") >= requirement.getMinStrength();
+            boolean meetsDexterity = requirement.getMinDexterity() == null || getCharacterStat(character, "dexterity") >= requirement.getMinDexterity();
+            boolean meetsConstitution = requirement.getMinConstitution() == null || getCharacterStat(character, "constitution") >= requirement.getMinConstitution();
+            boolean meetsIntelligence = requirement.getMinIntelligence() == null || getCharacterStat(character, "intelligence") >= requirement.getMinIntelligence();
+            boolean meetsWisdom = requirement.getMinWisdom() == null || getCharacterStat(character, "wisdom") >= requirement.getMinWisdom();
+            boolean meetsCharisma = requirement.getMinCharisma() == null || getCharacterStat(character, "charisma") >= requirement.getMinCharisma();
+
+            boolean canEquipForThisClass = character.getCharacterClass().getId().equals(requirement.getRequiredClass().getId()) &&
+                meetsStrength && meetsDexterity && meetsConstitution && meetsIntelligence && meetsWisdom && meetsCharisma;
+
+            if (!canEquipForThisClass) {
+                canEquip = false;
+            }
+
+            checks.add(new CharacterEquipmentValidationDTO.RequirementCheckDTO(
+                requirement.getRequiredClass().getName(),
+                meetsStrength,
+                requirement.getMinStrength(),
+                getCharacterStat(character, "strength"),
+                meetsDexterity,
+                requirement.getMinDexterity(),
+                getCharacterStat(character, "dexterity"),
+                meetsConstitution,
+                requirement.getMinConstitution(),
+                getCharacterStat(character, "constitution"),
+                meetsIntelligence,
+                requirement.getMinIntelligence(),
+                getCharacterStat(character, "intelligence"),
+                meetsWisdom,
+                requirement.getMinWisdom(),
+                getCharacterStat(character, "wisdom"),
+                meetsCharisma,
+                requirement.getMinCharisma(),
+                getCharacterStat(character, "charisma"),
+                canEquipForThisClass
+            ));
+        }
+
+        return new CharacterEquipmentValidationDTO(characterId, equipmentId, equipment.getName(), canEquip, checks);
+    }
+
+    private Integer getCharacterStat(Character character, String stat) {
+        if (character.getCharacterClass() == null) {
+            return 0;
+        }
+
+        int baseStat = 10; // D&D standard base stat
+        CharacterClass charClass = character.getCharacterClass();
+        Race race = character.getRace();
+
+        return switch (stat.toLowerCase()) {
+            case "strength" -> baseStat + (charClass.getStrengthBonus() != null ? charClass.getStrengthBonus() : 0) +
+                            (race != null && race.getStrengthBonus() != null ? race.getStrengthBonus() : 0);
+            case "dexterity" -> baseStat + (charClass.getDexterityBonus() != null ? charClass.getDexterityBonus() : 0) +
+                             (race != null && race.getDexterityBonus() != null ? race.getDexterityBonus() : 0);
+            case "constitution" -> baseStat + (charClass.getConstitutionBonus() != null ? charClass.getConstitutionBonus() : 0) +
+                               (race != null && race.getConstitutionBonus() != null ? race.getConstitutionBonus() : 0);
+            case "intelligence" -> baseStat + (charClass.getIntelligenceBonus() != null ? charClass.getIntelligenceBonus() : 0) +
+                               (race != null && race.getIntelligenceBonus() != null ? race.getIntelligenceBonus() : 0);
+            case "wisdom" -> baseStat + (charClass.getWisdomBonus() != null ? charClass.getWisdomBonus() : 0) +
+                          (race != null && race.getWisdomBonus() != null ? race.getWisdomBonus() : 0);
+            case "charisma" -> baseStat + (charClass.getCharismaBonus() != null ? charClass.getCharismaBonus() : 0) +
+                            (race != null && race.getCharismaBonus() != null ? race.getCharismaBonus() : 0);
+            default -> 0;
+        };
     }
 }
 

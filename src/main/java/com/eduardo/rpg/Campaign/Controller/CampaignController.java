@@ -47,6 +47,12 @@ public class CampaignController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/master/{masterId}/page")
+    public ResponseEntity<Page<CampaignResponseDTO>> findCampaignsByMasterIdPaginated(Authentication authentication, @PathVariable Long masterId, Pageable pageable) {
+        Page<CampaignResponseDTO> response = campaignService.findCampaignsByMasterId(authentication, masterId, pageable);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/master/{masterId}")
     public ResponseEntity<CampaignResponseDTO> createCampaign(
         Authentication authentication,

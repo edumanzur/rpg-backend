@@ -37,7 +37,7 @@ public class AbilitySpellMapper {
         );
     }
 
-    public AbilitySpell toEntity(CreateAbilitySpellRequest dto) {
+    public AbilitySpell toEntity(AbilitySpellRequest dto) {
         if (dto == null) {
             return null;
         }
@@ -47,7 +47,7 @@ public class AbilitySpellMapper {
         return abilitySpell;
     }
 
-    public AbilitySpell toEntity(UpdateAbilitySpellRequest dto, AbilitySpell abilitySpell) {
+    public AbilitySpell toEntity(AbilitySpellRequest dto, AbilitySpell abilitySpell) {
         if (dto == null || abilitySpell == null) {
             return abilitySpell;
         }

@@ -11,6 +11,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -28,6 +29,7 @@ import java.security.interfaces.RSAPublicKey;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${jwt.public.key}")
@@ -50,11 +52,17 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)) // Libera o console do H2
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll() // Libera o Banco de Dados
-                .requestMatchers("/users/**").permitAll()      // Libera seus Endpoints de Usuário
-                .requestMatchers("/races/**").authenticated()
-                .requestMatchers("/character-classes/**").authenticated()
-                .requestMatchers("/ability-spells/**").authenticated()
-                .requestMatchers("/equipments/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/users").permitAll()
+                .requestMatchers(HttpMethod.GET, "/users", "/users/*").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/users/*").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/races/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/character-classes/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/ability-spells/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/equipments/**").authenticated()
+                .requestMatchers("/races/**").hasAnyRole("MASTER", "ADMIN")
+                .requestMatchers("/character-classes/**").hasAnyRole("MASTER", "ADMIN")
+                .requestMatchers("/ability-spells/**").hasAnyRole("MASTER", "ADMIN")
+                .requestMatchers("/equipments/**").hasAnyRole("MASTER", "ADMIN")
                 .requestMatchers("/campaigns/*/status-templates/**").authenticated()
                 .requestMatchers("/characters/*/statuses/**").authenticated()
                 .requestMatchers("/campaigns/**").authenticated()

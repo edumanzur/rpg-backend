@@ -1,6 +1,8 @@
 package com.eduardo.rpg.Campaign.Repository;
 
 import com.eduardo.rpg.Campaign.Campaign;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,6 +12,8 @@ import java.util.List;
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     List<Campaign> findByMasterId(Long masterId);
+
+    Page<Campaign> findByMasterId(Long masterId, Pageable pageable);
 
     boolean existsByNameAndMasterId(String name, Long masterId);
 

@@ -1,6 +1,8 @@
 package com.eduardo.rpg.Character.Controller;
 
 import com.eduardo.rpg.Character.DTO.CharacterResponseDTO;
+import com.eduardo.rpg.Character.DTO.CharacterAbilityValidationDTO;
+import com.eduardo.rpg.Character.DTO.CharacterEquipmentValidationDTO;
 import com.eduardo.rpg.Character.DTO.CreateCharacterRequest;
 import com.eduardo.rpg.Character.DTO.UpdateCharacterRequest;
 import com.eduardo.rpg.Character.Service.CharacterService;
@@ -39,6 +41,12 @@ public class CharacterController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<CharacterResponseDTO>> findCharactersByUserId(Authentication authentication, @PathVariable Long userId) {
         List<CharacterResponseDTO> response = characterService.findCharactersByUserId(authentication, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/user/{userId}/page")
+    public ResponseEntity<Page<CharacterResponseDTO>> findCharactersByUserIdPaginated(Authentication authentication, @PathVariable Long userId, Pageable pageable) {
+        Page<CharacterResponseDTO> response = characterService.findCharactersByUserId(authentication, userId, pageable);
         return ResponseEntity.ok(response);
     }
 
@@ -106,6 +114,24 @@ public class CharacterController {
         @PathVariable Long abilityId) {
         characterService.removeAbilityFromCharacter(authentication, id, abilityId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/validate/ability/{abilityId}")
+    public ResponseEntity<CharacterAbilityValidationDTO> validateAbilityUsage(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long abilityId) {
+        CharacterAbilityValidationDTO response = characterService.validateAbilityUsage(authentication, id, abilityId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/validate/equipment/{equipmentId}")
+    public ResponseEntity<CharacterEquipmentValidationDTO> validateEquipmentUsage(
+        Authentication authentication,
+        @PathVariable Long id,
+        @PathVariable Long equipmentId) {
+        CharacterEquipmentValidationDTO response = characterService.validateEquipmentUsage(authentication, id, equipmentId);
+        return ResponseEntity.ok(response);
     }
 }
 

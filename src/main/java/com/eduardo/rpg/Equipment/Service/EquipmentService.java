@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.function.Function;
 import java.util.List;
 
 @Service
@@ -32,17 +33,13 @@ public class EquipmentService {
         validateWeaponDamage(dto.type(), dto.damage());
 
         Equipment equipment = equipmentMapper.toEntity(dto);
-        equipment.setRequirements(mapRequirements(equipment, dto.requirements()));
+        equipment.setRequirements(mapCreateRequirements(equipment, dto.requirements()));
         Equipment savedEquipment = equipmentRepository.save(equipment);
         return equipmentMapper.toResponse(savedEquipment);
     }
 
     @Transactional(readOnly = true)
     public EquipmentResponseDTO findEquipmentById(Long id) {
-        if (id == null) {
-            throw new ResourceNotFoundException("Equipamento não encontrado!");
-        }
-
         Equipment equipment = equipmentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Equipamento não encontrado!"));
         return equipmentMapper.toResponse(equipment);
@@ -96,25 +93,61 @@ public class EquipmentService {
         }
     }
 
-    private List<EquipmentRequirement> mapRequirements(Equipment equipment, List<CreateEquipmentRequest.RequirementRequest> requests) {
+    private List<EquipmentRequirement> mapCreateRequirements(Equipment equipment, List<CreateEquipmentRequest.RequirementRequest> requests) {
+        return mapRequirementsInternal(
+            equipment,
+            requests,
+            CreateEquipmentRequest.RequirementRequest::requiredClassId,
+            CreateEquipmentRequest.RequirementRequest::minStrength,
+            CreateEquipmentRequest.RequirementRequest::minDexterity,
+            CreateEquipmentRequest.RequirementRequest::minConstitution,
+            CreateEquipmentRequest.RequirementRequest::minIntelligence,
+            CreateEquipmentRequest.RequirementRequest::minWisdom,
+            CreateEquipmentRequest.RequirementRequest::minCharisma
+        );
+    }
+
+    private List<EquipmentRequirement> mapUpdateRequirements(Equipment equipment, List<UpdateEquipmentRequest.RequirementRequest> requests) {
+        return mapRequirementsInternal(
+            equipment,
+            requests,
+            UpdateEquipmentRequest.RequirementRequest::requiredClassId,
+            UpdateEquipmentRequest.RequirementRequest::minStrength,
+            UpdateEquipmentRequest.RequirementRequest::minDexterity,
+            UpdateEquipmentRequest.RequirementRequest::minConstitution,
+            UpdateEquipmentRequest.RequirementRequest::minIntelligence,
+            UpdateEquipmentRequest.RequirementRequest::minWisdom,
+            UpdateEquipmentRequest.RequirementRequest::minCharisma
+        );
+    }
+
+    private <R> List<EquipmentRequirement> mapRequirementsInternal(
+        Equipment equipment,
+        List<R> requests,
+        Function<R, Long> requiredClassIdExtractor,
+        Function<R, Integer> minStrengthExtractor,
+        Function<R, Integer> minDexterityExtractor,
+        Function<R, Integer> minConstitutionExtractor,
+        Function<R, Integer> minIntelligenceExtractor,
+        Function<R, Integer> minWisdomExtractor,
+        Function<R, Integer> minCharismaExtractor
+    ) {
         return RequirementMapperHelper.mapRequirements(
             requests,
             "equipamento",
-            CreateEquipmentRequest.RequirementRequest::requiredClassId,
+            requiredClassIdExtractor,
             classId -> characterClassRepository.findById(classId)
                 .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!")),
-            (request, requiredClass) -> {
-                EquipmentRequirement requirement = new EquipmentRequirement();
-                requirement.setEquipment(equipment);
-                requirement.setRequiredClass(requiredClass);
-                requirement.setMinStrength(normalize(request.minStrength()));
-                requirement.setMinDexterity(normalize(request.minDexterity()));
-                requirement.setMinConstitution(normalize(request.minConstitution()));
-                requirement.setMinIntelligence(normalize(request.minIntelligence()));
-                requirement.setMinWisdom(normalize(request.minWisdom()));
-                requirement.setMinCharisma(normalize(request.minCharisma()));
-                return requirement;
-            }
+            (request, requiredClass) -> buildRequirement(
+                equipment,
+                requiredClass,
+                minStrengthExtractor.apply(request),
+                minDexterityExtractor.apply(request),
+                minConstitutionExtractor.apply(request),
+                minIntelligenceExtractor.apply(request),
+                minWisdomExtractor.apply(request),
+                minCharismaExtractor.apply(request)
+            )
         );
     }
 
@@ -125,25 +158,29 @@ public class EquipmentService {
             equipment.getRequirements().clear();
         }
 
-        equipment.getRequirements().addAll(RequirementMapperHelper.mapRequirements(
-            requests,
-            "equipamento",
-            UpdateEquipmentRequest.RequirementRequest::requiredClassId,
-            classId -> characterClassRepository.findById(classId)
-                .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!")),
-            (request, requiredClass) -> {
-                EquipmentRequirement requirement = new EquipmentRequirement();
-                requirement.setEquipment(equipment);
-                requirement.setRequiredClass(requiredClass);
-                requirement.setMinStrength(normalize(request.minStrength()));
-                requirement.setMinDexterity(normalize(request.minDexterity()));
-                requirement.setMinConstitution(normalize(request.minConstitution()));
-                requirement.setMinIntelligence(normalize(request.minIntelligence()));
-                requirement.setMinWisdom(normalize(request.minWisdom()));
-                requirement.setMinCharisma(normalize(request.minCharisma()));
-                return requirement;
-            }
-        ));
+        equipment.getRequirements().addAll(mapUpdateRequirements(equipment, requests));
+    }
+
+    private EquipmentRequirement buildRequirement(
+        Equipment equipment,
+        com.eduardo.rpg.CharacterClass.CharacterClass requiredClass,
+        Integer minStrength,
+        Integer minDexterity,
+        Integer minConstitution,
+        Integer minIntelligence,
+        Integer minWisdom,
+        Integer minCharisma
+    ) {
+        EquipmentRequirement requirement = new EquipmentRequirement();
+        requirement.setEquipment(equipment);
+        requirement.setRequiredClass(requiredClass);
+        requirement.setMinStrength(normalize(minStrength));
+        requirement.setMinDexterity(normalize(minDexterity));
+        requirement.setMinConstitution(normalize(minConstitution));
+        requirement.setMinIntelligence(normalize(minIntelligence));
+        requirement.setMinWisdom(normalize(minWisdom));
+        requirement.setMinCharisma(normalize(minCharisma));
+        return requirement;
     }
 
     private Integer normalize(Integer value) {
