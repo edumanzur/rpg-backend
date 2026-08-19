@@ -1,9 +1,12 @@
 package com.eduardo.rpg.Character.DTO;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.eduardo.rpg.enums.CharacterRole;
 import com.eduardo.rpg.enums.Gender;
+import com.eduardo.rpg.Equipment.DTO.EquipmentResponseDTO;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellResponseDTO;
 
 public record CharacterResponseDTO(
     Long id,
@@ -17,6 +20,8 @@ public record CharacterResponseDTO(
     String description,
     Long userId,
     Long campaignId,
+    List<EquipmentResponseDTO> equipments,
+    List<AbilitySpellResponseDTO> abilities,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {

@@ -17,6 +17,12 @@ public interface CharacterRepository extends JpaRepository<Character, Long> {
 
     List<Character> findByCampaignId(Long campaignId);
 
+    List<Character> findByCampaignIdAndUserId(Long campaignId, Long userId);
+
+    List<Character> findByCampaign_Master_IdOrUser_Id(Long masterId, Long userId);
+
+    Page<Character> findByCampaign_Master_IdOrUser_Id(Long masterId, Long userId, Pageable pageable);
+
     boolean existsByNameAndUserId(String name, Long userId);
 
     boolean existsByUserIdAndCampaignIdAndRole(Long userId, Long campaignId, CharacterRole role);

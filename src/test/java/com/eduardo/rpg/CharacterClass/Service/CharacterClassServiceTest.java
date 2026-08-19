@@ -32,6 +32,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.enums.Role;
+import com.eduardo.rpg.security.AccessControlService;
 
 @DisplayName("CharacterClassService Unit Tests")
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +53,9 @@ class CharacterClassServiceTest {
     @Mock
     private CharacterClassMapper characterClassMapper;
 
+    @Mock
+    private AccessControlService accessControlService;
+
     @InjectMocks
     private CharacterClassService characterClassService;
 
@@ -53,9 +63,13 @@ class CharacterClassServiceTest {
     private AbilitySpell abilitySpell;
     private CharacterClassResponseDTO characterClassResponseDTO;
     private CreateCharacterClassRequest createCharacterClassRequest;
+    private Authentication authentication;
+    private User masterUser;
 
     @BeforeEach
     void setUp() {
+        masterUser = new User(1L, "masteruser", "master@example.com", "password", Role.PLAYER, null, null);
+        authentication = new UsernamePasswordAuthenticationToken("masteruser", "password", List.of(new SimpleGrantedAuthority("ROLE_MASTER")));
         characterClass = new CharacterClass();
         characterClass.setId(1L);
         characterClass.setName("Ranger");
@@ -73,20 +87,21 @@ class CharacterClassServiceTest {
         abilitySpell.setDamage("3d6");
         abilitySpell.setEffect("Explosive fire damage");
 
-        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null);
-        createCharacterClassRequest = new CreateCharacterClassRequest("Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0);
+        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null, null);
+        createCharacterClassRequest = new CreateCharacterClassRequest("Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null);
     }
 
     @Test
     @DisplayName("Should create class successfully")
     void testCreateCharacterClassSuccess() {
         CharacterClass newClass = new CharacterClass();
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.existsByNameIgnoreCase("Ranger")).thenReturn(false);
         when(characterClassMapper.toEntity(createCharacterClassRequest)).thenReturn(newClass);
         when(characterClassRepository.save(any(CharacterClass.class))).thenReturn(characterClass);
         when(characterClassMapper.toResponse(characterClass)).thenReturn(characterClassResponseDTO);
 
-        CharacterClassResponseDTO result = characterClassService.createCharacterClass(createCharacterClassRequest);
+        CharacterClassResponseDTO result = characterClassService.createCharacterClass(authentication, createCharacterClassRequest);
 
         assertNotNull(result);
         assertEquals("Ranger", result.name());
@@ -96,9 +111,10 @@ class CharacterClassServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when class name exists")
     void testCreateCharacterClassNameExists() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.existsByNameIgnoreCase("Ranger")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> characterClassService.createCharacterClass(createCharacterClassRequest));
+        assertThrows(IllegalArgumentException.class, () -> characterClassService.createCharacterClass(authentication, createCharacterClassRequest));
         verify(characterClassRepository, never()).save(any());
     }
 
@@ -139,9 +155,9 @@ class CharacterClassServiceTest {
 
         when(characterClassRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(characterClass, second)));
         when(characterClassMapper.toResponse(characterClass)).thenReturn(characterClassResponseDTO);
-        when(characterClassMapper.toResponse(second)).thenReturn(new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null));
+        when(characterClassMapper.toResponse(second)).thenReturn(new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null, null));
 
-        Page<CharacterClassResponseDTO> result = characterClassService.findAllCharacterClasses(PageRequest.of(0, 10));
+        Page<CharacterClassResponseDTO> result = characterClassService.findAllCharacterClasses((Long) null, PageRequest.of(0, 10));
 
         assertEquals(2, result.getTotalElements());
     }
@@ -154,13 +170,14 @@ class CharacterClassServiceTest {
         updatedCharacterClass.setId(1L);
         updatedCharacterClass.setName("Ranger Updated");
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
         when(characterClassRepository.findByNameIgnoreCase("Ranger Updated")).thenReturn(Optional.empty());
         when(characterClassMapper.toEntity(updateRequest, characterClass)).thenReturn(updatedCharacterClass);
         when(characterClassRepository.save(any(CharacterClass.class))).thenReturn(updatedCharacterClass);
-        when(characterClassMapper.toResponse(updatedCharacterClass)).thenReturn(new CharacterClassResponseDTO(1L, "Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0, null, null));
+        when(characterClassMapper.toResponse(updatedCharacterClass)).thenReturn(new CharacterClassResponseDTO(1L, "Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0, null, null, null));
 
-        CharacterClassResponseDTO result = characterClassService.updateCharacterClass(1L, updateRequest);
+        CharacterClassResponseDTO result = characterClassService.updateCharacterClass(authentication, 1L, updateRequest);
 
         assertNotNull(result);
         assertEquals("Ranger Updated", result.name());
@@ -175,18 +192,20 @@ class CharacterClassServiceTest {
         anotherClass.setId(2L);
         anotherClass.setName("Mage");
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
         when(characterClassRepository.findByNameIgnoreCase("Mage")).thenReturn(Optional.of(anotherClass));
 
-        assertThrows(IllegalArgumentException.class, () -> characterClassService.updateCharacterClass(1L, updateRequest));
+        assertThrows(IllegalArgumentException.class, () -> characterClassService.updateCharacterClass(authentication, 1L, updateRequest));
     }
 
     @Test
     @DisplayName("Should delete class successfully")
     void testDeleteCharacterClassSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
 
-        characterClassService.deleteCharacterClass(1L);
+        characterClassService.deleteCharacterClass(authentication, 1L);
 
         verify(characterClassRepository, times(1)).delete(characterClass);
     }
@@ -196,16 +215,17 @@ class CharacterClassServiceTest {
     void testDeleteCharacterClassNotFound() {
         when(characterClassRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> characterClassService.deleteCharacterClass(1L));
+        assertThrows(ResourceNotFoundException.class, () -> characterClassService.deleteCharacterClass(authentication, 1L));
     }
 
     @Test
     @DisplayName("Should add ability to class successfully")
     void testAddAbilityToClassSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
         when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
 
-        characterClassService.addAbilityToClass(1L, 1L);
+        characterClassService.addAbilityToClass(authentication, 1L, 1L);
 
         assertEquals(1, characterClass.getAbilities().size());
         assertTrue(characterClass.getAbilities().contains(abilitySpell));
@@ -216,10 +236,11 @@ class CharacterClassServiceTest {
     @DisplayName("Should throw IllegalArgumentException when adding duplicated ability to class")
     void testAddAbilityToClassDuplicate() {
         characterClass.getAbilities().add(abilitySpell);
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
         when(abilitySpellRepository.findById(1L)).thenReturn(Optional.of(abilitySpell));
 
-        assertThrows(IllegalArgumentException.class, () -> characterClassService.addAbilityToClass(1L, 1L));
+        assertThrows(IllegalArgumentException.class, () -> characterClassService.addAbilityToClass(authentication, 1L, 1L));
         verify(characterClassRepository, never()).save(any());
     }
 }

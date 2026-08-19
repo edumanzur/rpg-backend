@@ -2,10 +2,17 @@ package com.eduardo.rpg.Character.DTO;
 
 import com.eduardo.rpg.Character.Character;
 import com.eduardo.rpg.enums.Gender;
+import com.eduardo.rpg.Equipment.DTO.EquipmentMapper;
+import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class CharacterMapper {
+
+    private final EquipmentMapper equipmentMapper;
+    private final AbilitySpellMapper abilitySpellMapper;
 
     public CharacterResponseDTO toResponse(Character character) {
         if (character == null) return null;
@@ -48,6 +55,8 @@ public class CharacterMapper {
             character.getDescription(),
             character.getUser() != null ? character.getUser().getId() : null,
             character.getCampaign() != null ? character.getCampaign().getId() : null,
+            character.getEquipments().stream().map(equipmentMapper::toResponse).toList(),
+            character.getAbilities().stream().map(abilitySpellMapper::toResponse).toList(),
             character.getCreatedAt(),
             character.getUpdatedAt()
         );

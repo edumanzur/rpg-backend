@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
@@ -15,8 +16,14 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     Page<Campaign> findByMasterId(Long masterId, Pageable pageable);
 
+    List<Campaign> findByPlayersContaining(com.eduardo.rpg.User.Domains.User player);
+
+    Page<Campaign> findByPlayersContaining(com.eduardo.rpg.User.Domains.User player, Pageable pageable);
+
     boolean existsByNameAndMasterId(String name, Long masterId);
 
     boolean existsByNameAndMasterIdAndIdNot(String name, Long masterId, Long id);
+
+    Optional<Campaign> findByInviteCode(String inviteCode);
 }
 

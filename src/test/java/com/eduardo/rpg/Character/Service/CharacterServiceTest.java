@@ -96,7 +96,7 @@ class CharacterServiceTest {
     @BeforeEach
     void setUp() {
         user = new User(1L, "testuser", "test@example.com", "password", Role.PLAYER, null, null);
-        master = new User(2L, "masteruser", "master@example.com", "password", Role.MASTER, null, null);
+        master = new User(2L, "masteruser", "master@example.com", "password", Role.PLAYER, null, null);
         campaign = new Campaign();
         campaign.setId(1L);
         campaign.setName("Epic Quest");
@@ -157,7 +157,7 @@ class CharacterServiceTest {
             1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0
         );
         characterResponseDTO = new CharacterResponseDTO(
-            1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, null, null
+            1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, List.of(), List.of(), null, null
         );
         createCharacterRequest = new CreateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 10, "A noble ranger");
         authentication = new UsernamePasswordAuthenticationToken("testuser", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
@@ -271,9 +271,11 @@ class CharacterServiceTest {
     @DisplayName("Should find characters by campaign id")
     void testFindCharactersByCampaignIdSuccess() {
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
-        when(characterRepository.findByCampaignId(1L)).thenReturn(List.of(character));
+        // For players, service queries characters by campaign and user id
+        when(characterRepository.findByCampaignIdAndUserId(1L, user.getId())).thenReturn(List.of(character));
         when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(user);
+        when(accessControlService.isCampaignPlayer(user, campaign)).thenReturn(true);
 
         List<CharacterResponseDTO> result = characterService.findCharactersByCampaignId(authentication, 1L);
 
@@ -284,7 +286,9 @@ class CharacterServiceTest {
     @DisplayName("Should find all characters")
     void testFindAllCharactersSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        when(characterRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(character)));
+        // Master should trigger repository method that returns characters for campaigns they own or their own characters
+        when(characterRepository.findByCampaign_Master_IdOrUser_Id(master.getId(), master.getId(), PageRequest.of(0, 10)))
+            .thenReturn(new PageImpl<>(List.of(character)));
         when(characterMapper.toResponse(character)).thenReturn(characterResponseDTO);
 
         Page<CharacterResponseDTO> result = characterService.findAllCharacters(authentication, PageRequest.of(0, 10));

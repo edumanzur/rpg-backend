@@ -33,6 +33,7 @@ public class EquipmentMapper {
             equipment.getIntelligenceBonus(),
             equipment.getWisdomBonus(),
             equipment.getCharismaBonus(),
+            equipment.getCampaignId(),
             requirements,
             equipment.getCreatedAt(),
             equipment.getUpdatedAt()
@@ -46,6 +47,7 @@ public class EquipmentMapper {
 
         Equipment equipment = new Equipment();
         apply(dto.name(), dto.description(), dto.type(), dto.damage(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), equipment);
+        equipment.setCampaignId(dto.campaignId());
         return equipment;
     }
 

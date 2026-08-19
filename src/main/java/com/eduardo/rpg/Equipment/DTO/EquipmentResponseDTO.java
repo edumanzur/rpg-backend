@@ -17,6 +17,7 @@ public record EquipmentResponseDTO(
     Integer intelligenceBonus,
     Integer wisdomBonus,
     Integer charismaBonus,
+    Long campaignId,
     List<RequirementDTO> requirements,
     LocalDateTime createdAt,
     LocalDateTime updatedAt

@@ -31,6 +31,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -60,6 +61,7 @@ class AbilitySpellControllerTest {
             "1 action",
             CostType.ACTION,
             3,
+            null,
             List.of(new AbilitySpellResponseDTO.RequirementDTO(1L, 1L, "Mage", 3, 0, 0, 0, 2, 0, 0)),
             null,
             null
@@ -70,7 +72,7 @@ class AbilitySpellControllerTest {
     @DisplayName("GET /ability-spells/{id} should return ability successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAbilitySpellByIdSuccess() throws Exception {
-        when(abilitySpellService.findAbilitySpellById(1L)).thenReturn(abilitySpellResponseDTO);
+        when(abilitySpellService.findAbilitySpellById(any(Authentication.class), eq(1L))).thenReturn(abilitySpellResponseDTO);
 
         mockMvc.perform(get("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -79,14 +81,14 @@ class AbilitySpellControllerTest {
             .andExpect(jsonPath("$.costType", is("ACTION")))
             .andExpect(jsonPath("$.requirements", hasSize(1)));
 
-        verify(abilitySpellService, times(1)).findAbilitySpellById(1L);
+        verify(abilitySpellService, times(1)).findAbilitySpellById(any(Authentication.class), eq(1L));
     }
 
     @Test
     @DisplayName("GET /ability-spells/{id} should return 404 when ability not found")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAbilitySpellByIdNotFound() throws Exception {
-        when(abilitySpellService.findAbilitySpellById(1L)).thenThrow(new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+        when(abilitySpellService.findAbilitySpellById(any(Authentication.class), eq(1L))).thenThrow(new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
 
         mockMvc.perform(get("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -108,11 +110,12 @@ class AbilitySpellControllerTest {
             "1 action",
             CostType.ACTION,
             2,
+            null,
             List.of(),
             null,
             null
         );
-        when(abilitySpellService.findAllAbilitySpells(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(abilitySpellResponseDTO, second)));
+        when(abilitySpellService.findAllAbilitySpells(any(Authentication.class), eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(abilitySpellResponseDTO, second)));
 
         mockMvc.perform(get("/ability-spells?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -120,14 +123,14 @@ class AbilitySpellControllerTest {
             .andExpect(jsonPath("$.content[0].name", is("Fireball")))
             .andExpect(jsonPath("$.content[1].name", is("Ice Bolt")));
 
-        verify(abilitySpellService, times(1)).findAllAbilitySpells(PageRequest.of(0, 10));
+        verify(abilitySpellService, times(1)).findAllAbilitySpells(any(Authentication.class), eq((Long) null), eq(PageRequest.of(0, 10)));
     }
 
     @Test
     @DisplayName("POST /ability-spells should create ability successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateAbilitySpellSuccess() throws Exception {
-        when(abilitySpellService.createAbilitySpell(any())).thenReturn(abilitySpellResponseDTO);
+        when(abilitySpellService.createAbilitySpell(any(Authentication.class), any())).thenReturn(abilitySpellResponseDTO);
 
         mockMvc.perform(post("/ability-spells")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -160,14 +163,14 @@ class AbilitySpellControllerTest {
             .andExpect(jsonPath("$.name", is("Fireball")))
             .andExpect(jsonPath("$.requirements", hasSize(1)));
 
-        verify(abilitySpellService, times(1)).createAbilitySpell(any());
+        verify(abilitySpellService, times(1)).createAbilitySpell(any(Authentication.class), any());
     }
 
     @Test
     @DisplayName("POST /ability-spells should handle conflict")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateAbilitySpellConflict() throws Exception {
-        when(abilitySpellService.createAbilitySpell(any())).thenThrow(new IllegalArgumentException("Já existe uma habilidade/magia com este nome"));
+        when(abilitySpellService.createAbilitySpell(any(Authentication.class), any())).thenThrow(new IllegalArgumentException("Já existe uma habilidade/magia com este nome"));
 
         mockMvc.perform(post("/ability-spells")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -192,7 +195,7 @@ class AbilitySpellControllerTest {
     @DisplayName("PUT /ability-spells/{id} should update ability successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateAbilitySpellSuccess() throws Exception {
-        when(abilitySpellService.updateAbilitySpell(eq(1L), any())).thenReturn(abilitySpellResponseDTO);
+        when(abilitySpellService.updateAbilitySpell(any(Authentication.class), eq(1L), any())).thenReturn(abilitySpellResponseDTO);
 
         mockMvc.perform(put("/ability-spells/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -212,19 +215,19 @@ class AbilitySpellControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name", is("Fireball")));
 
-        verify(abilitySpellService, times(1)).updateAbilitySpell(eq(1L), any());
+        verify(abilitySpellService, times(1)).updateAbilitySpell(any(Authentication.class), eq(1L), any());
     }
 
     @Test
     @DisplayName("DELETE /ability-spells/{id} should delete ability successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteAbilitySpellSuccess() throws Exception {
-        doNothing().when(abilitySpellService).deleteAbilitySpell(1L);
+        doNothing().when(abilitySpellService).deleteAbilitySpell(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        verify(abilitySpellService, times(1)).deleteAbilitySpell(1L);
+        verify(abilitySpellService, times(1)).deleteAbilitySpell(any(Authentication.class), eq(1L));
     }
 
     @Test
@@ -232,7 +235,7 @@ class AbilitySpellControllerTest {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteAbilitySpellNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Habilidade/Magia não encontrada!"))
-            .when(abilitySpellService).deleteAbilitySpell(1L);
+            .when(abilitySpellService).deleteAbilitySpell(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -244,6 +247,9 @@ class AbilitySpellControllerTest {
     @DisplayName("POST /ability-spells should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testCreateAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        when(abilitySpellService.createAbilitySpell(any(Authentication.class), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(post("/ability-spells")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -266,6 +272,9 @@ class AbilitySpellControllerTest {
     @DisplayName("PUT /ability-spells/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testUpdateAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        when(abilitySpellService.updateAbilitySpell(any(Authentication.class), eq(1L), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(put("/ability-spells/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -288,6 +297,9 @@ class AbilitySpellControllerTest {
     @DisplayName("DELETE /ability-spells/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testDeleteAbilitySpellWithPlayerRoleShouldForbidden() throws Exception {
+        doThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"))
+            .when(abilitySpellService).deleteAbilitySpell(any(Authentication.class), eq(1L));
+
         mockMvc.perform(delete("/ability-spells/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
@@ -306,11 +318,12 @@ class AbilitySpellControllerTest {
             "1 action",
             CostType.ACTION,
             2,
+            null,
             List.of(),
             null,
             null
         );
-        when(abilitySpellService.findAllAbilitySpells(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(abilitySpellResponseDTO, second)));
+        when(abilitySpellService.findAllAbilitySpells(any(), eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(abilitySpellResponseDTO, second)));
 
         mockMvc.perform(get("/ability-spells?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())

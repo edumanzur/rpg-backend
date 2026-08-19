@@ -13,6 +13,7 @@ public class CampaignMapper {
             campaign.getId(),
             campaign.getName(),
             campaign.getDescription(),
+            campaign.getInviteCode(),
             campaign.getStatus(),
             campaign.getMaster() != null ? campaign.getMaster().getId() : null,
             campaign.getCreatedAt(),

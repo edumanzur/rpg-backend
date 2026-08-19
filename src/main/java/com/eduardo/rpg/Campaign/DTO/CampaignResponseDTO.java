@@ -6,6 +6,7 @@ public record CampaignResponseDTO(
     Long id,
     String name,
     String description,
+    String inviteCode,
     Boolean status,
     Long masterId,
     LocalDateTime createdAt,

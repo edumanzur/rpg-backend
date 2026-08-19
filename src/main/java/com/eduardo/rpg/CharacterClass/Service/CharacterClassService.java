@@ -9,9 +9,11 @@ import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
 import com.eduardo.rpg.AbilitySpell.AbilitySpell;
 import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
+import com.eduardo.rpg.security.AccessControlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +24,13 @@ public class CharacterClassService {
     private final CharacterClassRepository characterClassRepository;
     private final AbilitySpellRepository abilitySpellRepository;
     private final CharacterClassMapper characterClassMapper;
+    private final AccessControlService accessControlService;
 
     @Transactional
-    public CharacterClassResponseDTO createCharacterClass(CreateCharacterClassRequest dto) {
+    public CharacterClassResponseDTO createCharacterClass(Authentication authentication, CreateCharacterClassRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireGameContentWritePermission(authUser, dto.campaignId());
+
         if (characterClassRepository.existsByNameIgnoreCase(dto.name())) {
             throw new IllegalArgumentException("Já existe uma classe com este nome");
         }
@@ -46,15 +52,21 @@ public class CharacterClassService {
     }
 
     @Transactional(readOnly = true)
-    public Page<CharacterClassResponseDTO> findAllCharacterClasses(Pageable pageable) {
+    public Page<CharacterClassResponseDTO> findAllCharacterClasses(Long campaignId, Pageable pageable) {
+        if (campaignId != null) {
+            return characterClassRepository.findByCampaignId(campaignId, pageable)
+                .map(characterClassMapper::toResponse);
+        }
         return characterClassRepository.findAll(pageable)
             .map(characterClassMapper::toResponse);
     }
 
     @Transactional
-    public CharacterClassResponseDTO updateCharacterClass(Long id, UpdateCharacterClassRequest dto) {
+    public CharacterClassResponseDTO updateCharacterClass(Authentication authentication, Long id, UpdateCharacterClassRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         CharacterClass characterClass = characterClassRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, characterClass.getCampaignId());
 
         characterClassRepository.findByNameIgnoreCase(dto.name())
             .filter(existing -> !existing.getId().equals(id))
@@ -68,17 +80,21 @@ public class CharacterClassService {
     }
 
     @Transactional
-    public void deleteCharacterClass(Long id) {
+    public void deleteCharacterClass(Authentication authentication, Long id) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         CharacterClass characterClass = characterClassRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, characterClass.getCampaignId());
         characterClassRepository.delete(characterClass);
     }
 
     @Transactional
     @SuppressWarnings("unused")
-    public void addAbilityToClass(Long classId, Long abilityId) {
+    public void addAbilityToClass(Authentication authentication, Long classId, Long abilityId) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         CharacterClass characterClass = characterClassRepository.findById(classId)
             .orElseThrow(() -> new ResourceNotFoundException("Classe não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, characterClass.getCampaignId());
         AbilitySpell abilitySpell = abilitySpellRepository.findById(abilityId)
             .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
 

@@ -20,6 +20,7 @@ public record AbilitySpellRequest(
     CostType costType,
     @Min(value = 0, message = "Required level cannot be negative")
     Integer requiredLevel,
+    Long campaignId,
     @Valid
     List<RequirementRequest> requirements
 ) {

@@ -18,6 +18,8 @@ import com.eduardo.rpg.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import com.eduardo.rpg.exception.UserAlreadyExistsException;
+import com.eduardo.rpg.security.AccessControlService;
+import org.springframework.security.core.Authentication;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final AccessControlService accessControlService;
 
     //Cria o usuario
     @Transactional //Para garantir a integridade dos dados
@@ -82,6 +85,36 @@ public class UserService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public UserResponseDTO updateUser(Authentication authentication, Long id, com.eduardo.rpg.User.DTO.UpdateUserRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireSameUserOrAdmin(authUser, id);
+
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado!"));
+
+        if (dto.username() != null && !dto.username().isBlank() && !dto.username().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(dto.username())) {
+                throw new UserAlreadyExistsException("Username " + dto.username() + " already exists");
+            }
+            user.setUsername(dto.username());
+        }
+
+        if (dto.email() != null && !dto.email().isBlank() && !dto.email().equals(user.getEmail())) {
+            if (userRepository.existsByEmail(dto.email())) {
+                throw new UserAlreadyExistsException("Email " + dto.email() + " already exists");
+            }
+            user.setEmail(dto.email());
+        }
+
+        if (dto.password() != null && !dto.password().isBlank()) {
+            user.setPassword(passwordEncoder.encode(dto.password()));
+        }
+
+        User updated = userRepository.save(user);
+        return userMapper.toResponse(updated);
     }
 
 }

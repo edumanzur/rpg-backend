@@ -41,7 +41,7 @@ class CampaignControllerTest {
 
     @BeforeEach
     void setUp() {
-        campaignResponseDTO = new CampaignResponseDTO(1L, "Epic Quest", "A grand adventure", true, 1L, null, null);
+        campaignResponseDTO = new CampaignResponseDTO(1L, "Epic Quest", "A grand adventure", "ABC12345", true, 1L, null, null);
     }
 
     @Test
@@ -75,7 +75,7 @@ class CampaignControllerTest {
     @Test
     @DisplayName("GET /campaigns should return all campaigns")
     void testFindAllCampaignsSuccess() throws Exception {
-        CampaignResponseDTO second = new CampaignResponseDTO(2L, "Side Quest", "Another adventure", false, 1L, null, null);
+        CampaignResponseDTO second = new CampaignResponseDTO(2L, "Side Quest", "Another adventure", "XYZ78901", false, 1L, null, null);
         when(campaignService.findAllCampaigns(any(), eq(PageRequest.of(0, 10))))
             .thenReturn(new PageImpl<>(List.of(campaignResponseDTO, second)));
 

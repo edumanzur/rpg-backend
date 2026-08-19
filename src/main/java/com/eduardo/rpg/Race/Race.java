@@ -62,6 +62,9 @@ public class Race {
     @OneToMany(mappedBy = "race", fetch = FetchType.LAZY)
     private List<Character> characters = new ArrayList<>();
 
+    @Column(name = "campaign_id")
+    private Long campaignId;
+
     @Column(updatable = false, nullable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;

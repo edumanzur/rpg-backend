@@ -70,7 +70,7 @@ class SessionServiceTest {
 
     @BeforeEach
     void setUp() {
-        master = new User(1L, "masteruser", "master@example.com", "password", Role.MASTER, null, null);
+        master = new User(1L, "masteruser", "master@example.com", "password", Role.PLAYER, null, null);
         campaign = new Campaign();
         campaign.setId(1L);
         campaign.setName("Epic Quest");

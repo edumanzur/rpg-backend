@@ -66,6 +66,9 @@ public class Equipment {
     @ManyToMany(mappedBy = "equipments", fetch = FetchType.LAZY)
     private List<Character> characters = new ArrayList<>();
 
+    @Column(name = "campaign_id")
+    private Long campaignId;
+
     @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<com.eduardo.rpg.Equipment.Requirement.EquipmentRequirement> requirements = new ArrayList<>();
 

@@ -27,6 +27,7 @@ public record CreateEquipmentRequest(
     Integer wisdomBonus,
     @Min(value = 0, message = "Charisma bonus cannot be negative")
     Integer charismaBonus,
+    Long campaignId,
     @Valid
     List<RequirementRequest> requirements
 ) {

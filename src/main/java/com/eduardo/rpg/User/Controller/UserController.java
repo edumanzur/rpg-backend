@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PutMapping;
+import jakarta.validation.Valid;
 
 
 @RestController
@@ -63,5 +66,12 @@ public class UserController {
 
         //Retorna o status 204 (No Content)
         return ResponseEntity.noContent().build();
+    }
+
+    //Atualiza o usuario (próprio usuario ou admin)
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponseDTO> updateUser(Authentication authentication, @PathVariable Long id, @RequestBody @Valid com.eduardo.rpg.User.DTO.UpdateUserRequest dto) {
+        UserResponseDTO response = userService.updateUser(authentication, id, dto);
+        return ResponseEntity.ok(response);
     }
 }

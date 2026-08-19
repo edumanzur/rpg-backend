@@ -21,6 +21,7 @@ public class CharacterClassMapper {
             characterClass.getIntelligenceBonus(),
             characterClass.getWisdomBonus(),
             characterClass.getCharismaBonus(),
+            characterClass.getCampaignId(),
             characterClass.getCreatedAt(),
             characterClass.getUpdatedAt()
         );
@@ -33,6 +34,7 @@ public class CharacterClassMapper {
 
         CharacterClass characterClass = new CharacterClass();
         apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), characterClass);
+        characterClass.setCampaignId(dto.campaignId());
         return characterClass;
     }
 

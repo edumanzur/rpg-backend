@@ -21,6 +21,7 @@ public class RaceMapper {
             race.getIntelligenceBonus(),
             race.getWisdomBonus(),
             race.getCharismaBonus(),
+            race.getCampaignId(),
             race.getCreatedAt(),
             race.getUpdatedAt()
         );
@@ -33,6 +34,7 @@ public class RaceMapper {
 
         Race race = new Race();
         apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), race);
+        race.setCampaignId(dto.campaignId());
         return race;
     }
 

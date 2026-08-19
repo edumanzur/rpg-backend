@@ -44,7 +44,7 @@ class SessionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "masteruser", roles = "MASTER")
+    @WithMockUser(username = "masteruser", roles = "ADMIN")
     @DisplayName("GET /sessions/{id} should return session successfully for master")
     void testFindSessionByIdSuccess() throws Exception {
         when(sessionService.findSessionById(any(), eq(1L))).thenReturn(sessionResponseDTO);
@@ -57,7 +57,7 @@ class SessionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "masteruser", roles = "MASTER")
+    @WithMockUser(username = "masteruser", roles = "ADMIN")
     @DisplayName("GET /sessions should return all sessions for master")
     void testFindAllSessionsSuccess() throws Exception {
         when(sessionService.findAllSessions(any(), eq(PageRequest.of(0, 10))))
@@ -77,7 +77,7 @@ class SessionControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "masteruser", roles = "MASTER")
+    @WithMockUser(username = "masteruser", roles = "ADMIN")
     @DisplayName("POST /sessions should create session successfully")
     void testCreateSessionSuccess() throws Exception {
         when(sessionService.createSession(any(), any())).thenReturn(sessionResponseDTO);

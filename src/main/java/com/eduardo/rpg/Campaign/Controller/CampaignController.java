@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,6 +42,12 @@ public class CampaignController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/code/{inviteCode}")
+    public ResponseEntity<CampaignResponseDTO> findCampaignByCode(@PathVariable String inviteCode) {
+        CampaignResponseDTO response = campaignService.findCampaignByCode(inviteCode);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/master/{masterId}")
     public ResponseEntity<java.util.List<CampaignResponseDTO>> findCampaignsByMasterId(Authentication authentication, @PathVariable Long masterId) {
         java.util.List<CampaignResponseDTO> response = campaignService.findCampaignsByMasterId(authentication, masterId);
@@ -53,6 +60,14 @@ public class CampaignController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping
+    public ResponseEntity<CampaignResponseDTO> createCampaignAsCurrentUser(
+        Authentication authentication,
+        @RequestBody @Valid CreateCampaignRequest dto) {
+        CampaignResponseDTO response = campaignService.createCampaignAsCurrentUser(authentication, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @PostMapping("/master/{masterId}")
     public ResponseEntity<CampaignResponseDTO> createCampaign(
         Authentication authentication,
@@ -60,6 +75,14 @@ public class CampaignController {
         @RequestBody @Valid CreateCampaignRequest dto) {
         CampaignResponseDTO response = campaignService.createCampaign(authentication, masterId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/join")
+    public ResponseEntity<Void> joinCampaign(
+        Authentication authentication,
+        @RequestParam String inviteCode) {
+        campaignService.joinCampaign(authentication, inviteCode);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")

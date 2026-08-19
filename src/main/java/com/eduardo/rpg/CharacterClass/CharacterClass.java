@@ -65,6 +65,9 @@ public class CharacterClass {
     @OneToMany(mappedBy = "characterClass", fetch = FetchType.LAZY)
     private List<Character> characters = new ArrayList<>();
 
+    @Column(name = "campaign_id")
+    private Long campaignId;
+
     // Habilidades / magias disponíveis para esta classe
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

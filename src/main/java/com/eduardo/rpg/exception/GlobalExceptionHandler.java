@@ -4,8 +4,10 @@ import java.time.LocalDateTime;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,6 +44,18 @@ public class GlobalExceptionHandler {
             "CONFLICT"
         );
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    // Login/credenciais inválidas (ex: senha errada) é erro do cliente, não
+    // do servidor - antes caía no handler genérico e virava 500.
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorDetails> handleAuthentication(AuthenticationException ex) {
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            "Usuário inexistente ou senha inválida",
+            "UNAUTHORIZED"
+        );
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -103,6 +117,18 @@ public class GlobalExceptionHandler {
         ErrorDetails error = new ErrorDetails(
             LocalDateTime.now(), 
             message, 
+            "BAD_REQUEST"
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    // Corpo da requisição malformado (JSON inválido, valor de enum
+    // inexistente, tipo incompatível) é erro do cliente, não do servidor.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorDetails> handleMalformedRequest(HttpMessageNotReadableException ex) {
+        ErrorDetails error = new ErrorDetails(
+            LocalDateTime.now(),
+            "O corpo da requisição é inválido ou está mal formatado.",
             "BAD_REQUEST"
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);

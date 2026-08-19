@@ -128,21 +128,39 @@ public class CharacterService {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = campaignRepository.findById(campaignId)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
-        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
+        // Allow viewing if admin, campaign master, or a participating player (players can only see their own characters)
+        if (accessControlService.isAdmin(authUser) || accessControlService.isCampaignMaster(authUser, campaign)) {
+            return characterRepository.findByCampaignId(campaignId)
+                .stream()
+                .map(characterMapper::toResponse)
+                .toList();
+        }
 
-        return characterRepository.findByCampaignId(campaignId)
-            .stream()
-            .map(characterMapper::toResponse)
-            .toList();
+        if (accessControlService.isCampaignPlayer(authUser, campaign)) {
+            return characterRepository.findByCampaignIdAndUserId(campaignId, authUser.getId())
+                .stream()
+                .map(characterMapper::toResponse)
+                .toList();
+        }
+
+        throw new AccessDeniedException("Sem permissão para acessar esta campanha");
     }
 
     @Transactional(readOnly = true)
     public Page<CharacterResponseDTO> findAllCharacters(Authentication authentication, Pageable pageable) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
 
-        return characterRepository.findAll(pageable)
-            .map(characterMapper::toResponse);
+        if (accessControlService.isAdmin(authUser)) {
+            return characterRepository.findAll(pageable).map(characterMapper::toResponse);
+        }
+
+        // For non-admins return characters the user can access: characters they own or characters in campaigns they master
+        Page<Character> page = characterRepository.findByCampaign_Master_IdOrUser_Id(authUser.getId(), authUser.getId(), pageable);
+        if (page == null) {
+            return new org.springframework.data.domain.PageImpl<>(new java.util.ArrayList<>(), pageable, 0);
+        }
+
+        return page.map(characterMapper::toResponse);
     }
 
     @Transactional

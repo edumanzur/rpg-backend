@@ -13,6 +13,7 @@ import com.eduardo.rpg.User.Domains.User;
 import com.eduardo.rpg.User.Repository.UserRepository;
 import com.eduardo.rpg.security.AccessControlService;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
+import com.eduardo.rpg.common.CampaignCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +37,25 @@ public class CampaignService {
     private final StatusTemplateValidator statusTemplateValidator;
 
     @Transactional
+    public CampaignResponseDTO createCampaignAsCurrentUser(Authentication authentication, CreateCampaignRequest dto) {
+        User authUser = accessControlService.getAuthenticatedUser(authentication);
+
+        if (campaignRepository.existsByNameAndMasterId(dto.name(), authUser.getId())) {
+            throw new IllegalArgumentException("Já existe uma campanha com este nome para este mestre");
+        }
+
+        Campaign campaign = campaignMapper.toEntity(dto);
+        campaign.setMaster(authUser);
+        campaign.setInviteCode(CampaignCodeGenerator.generateCode());
+        campaign.setStatusTemplates(mapStatusTemplates(campaign, dto.statusTemplates()));
+
+        Campaign savedCampaign = campaignRepository.save(campaign);
+        return campaignMapper.toResponse(savedCampaign);
+    }
+
+    @Transactional
     public CampaignResponseDTO createCampaign(Authentication authentication, Long masterId, CreateCampaignRequest dto) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
         if (!accessControlService.isAdmin(authUser)) {
             accessControlService.requireSameUserOrAdmin(authUser, masterId);
         }
@@ -52,6 +69,7 @@ public class CampaignService {
 
         Campaign campaign = campaignMapper.toEntity(dto);
         campaign.setMaster(master);
+        campaign.setInviteCode(CampaignCodeGenerator.generateCode());
         campaign.setStatusTemplates(mapStatusTemplates(campaign, dto.statusTemplates()));
 
         Campaign savedCampaign = campaignRepository.save(campaign);
@@ -63,14 +81,20 @@ public class CampaignService {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = campaignRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
-        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
+        accessControlService.requireCampaignViewPermission(authUser, campaign);
+        return campaignMapper.toResponse(campaign);
+    }
+
+    @Transactional(readOnly = true)
+    public CampaignResponseDTO findCampaignByCode(String inviteCode) {
+        Campaign campaign = campaignRepository.findByInviteCode(inviteCode)
+            .orElseThrow(() -> new ResourceNotFoundException("Código de campanha inválido!"));
         return campaignMapper.toResponse(campaign);
     }
 
     @Transactional(readOnly = true)
     public java.util.List<CampaignResponseDTO> findCampaignsByMasterId(Authentication authentication, Long masterId) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
         if (!accessControlService.isAdmin(authUser)) {
             accessControlService.requireSameUserOrAdmin(authUser, masterId);
         }
@@ -87,7 +111,6 @@ public class CampaignService {
     @Transactional(readOnly = true)
     public Page<CampaignResponseDTO> findCampaignsByMasterId(Authentication authentication, Long masterId, Pageable pageable) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
         if (!accessControlService.isAdmin(authUser)) {
             accessControlService.requireSameUserOrAdmin(authUser, masterId);
         }
@@ -102,10 +125,24 @@ public class CampaignService {
     @Transactional(readOnly = true)
     public Page<CampaignResponseDTO> findAllCampaigns(Authentication authentication, Pageable pageable) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
 
-        return campaignRepository.findAll(pageable)
-            .map(campaignMapper::toResponse);
+        if (accessControlService.isAdmin(authUser)) {
+            return campaignRepository.findAll(pageable).map(campaignMapper::toResponse);
+        }
+
+        // Masters see campaigns they own; players see campaigns they participate in
+        // Use repository methods to fetch appropriate campaigns
+        java.util.List<Campaign> masterCampaigns = campaignRepository.findByMasterId(authUser.getId());
+        if (masterCampaigns != null && !masterCampaigns.isEmpty()) {
+            return campaignRepository.findByMasterId(authUser.getId(), pageable).map(campaignMapper::toResponse);
+        }
+
+        Page<Campaign> playerPage = campaignRepository.findByPlayersContaining(authUser, pageable);
+        if (playerPage == null) {
+            return new org.springframework.data.domain.PageImpl<>(new java.util.ArrayList<>(), pageable, 0);
+        }
+
+        return playerPage.map(campaignMapper::toResponse);
     }
 
     @Transactional
@@ -132,6 +169,24 @@ public class CampaignService {
             .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
         accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
         campaignRepository.delete(campaign);
+    }
+
+    @Transactional
+    public void joinCampaign(Authentication authentication, String inviteCode) {
+        User player = accessControlService.getAuthenticatedUser(authentication);
+        Campaign campaign = campaignRepository.findByInviteCode(inviteCode)
+            .orElseThrow(() -> new ResourceNotFoundException("Código de campanha inválido!"));
+
+        if (campaign.getMaster().getId().equals(player.getId())) {
+            throw new IllegalArgumentException("Você é o mestre desta campanha!");
+        }
+
+        if (campaign.getPlayers().contains(player)) {
+            throw new IllegalArgumentException("Você já está nesta campanha!");
+        }
+
+        campaign.getPlayers().add(player);
+        campaignRepository.save(campaign);
     }
 
     private List<StatusTemplate> mapStatusTemplates(Campaign campaign, List<CreateStatusTemplateRequest> requests) {

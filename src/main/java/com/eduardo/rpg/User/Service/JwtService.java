@@ -26,12 +26,15 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.joining(" "));
 
+        com.eduardo.rpg.User.Domains.UserAuth userAuth = (com.eduardo.rpg.User.Domains.UserAuth) authentication.getPrincipal();
+
         var claims = JwtClaimsSet.builder()
                 .issuer("rpgbackend")
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiry))
                 .subject(authentication.getName())
                 .claim("scope", scopes)
+                .claim("userId", userAuth.getUser().getId())
                 .build();
 
         return encoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

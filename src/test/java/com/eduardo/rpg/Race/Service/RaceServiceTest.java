@@ -29,6 +29,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.enums.Role;
+import com.eduardo.rpg.security.AccessControlService;
 
 @DisplayName("RaceService Unit Tests")
 @ExtendWith(MockitoExtension.class)
@@ -40,15 +47,22 @@ class RaceServiceTest {
     @Mock
     private RaceMapper raceMapper;
 
+    @Mock
+    private AccessControlService accessControlService;
+
     @InjectMocks
     private RaceService raceService;
 
     private Race race;
     private RaceResponseDTO raceResponseDTO;
     private CreateRaceRequest createRaceRequest;
+    private Authentication authentication;
+    private User masterUser;
 
     @BeforeEach
     void setUp() {
+        masterUser = new User(1L, "masteruser", "master@example.com", "password", Role.PLAYER, null, null);
+        authentication = new UsernamePasswordAuthenticationToken("masteruser", "password", List.of(new SimpleGrantedAuthority("ROLE_MASTER")));
         race = new Race();
         race.setId(1L);
         race.setName("Human");
@@ -60,20 +74,21 @@ class RaceServiceTest {
         race.setWisdomBonus(0);
         race.setCharismaBonus(1);
 
-        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null);
-        createRaceRequest = new CreateRaceRequest("Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1);
+        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null, null);
+        createRaceRequest = new CreateRaceRequest("Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null);
     }
 
     @Test
     @DisplayName("Should create race successfully")
     void testCreateRaceSuccess() {
         Race newRace = new Race();
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(raceRepository.existsByNameIgnoreCase("Human")).thenReturn(false);
         when(raceMapper.toEntity(createRaceRequest)).thenReturn(newRace);
         when(raceRepository.save(any(Race.class))).thenReturn(race);
         when(raceMapper.toResponse(race)).thenReturn(raceResponseDTO);
 
-        RaceResponseDTO result = raceService.createRace(createRaceRequest);
+        RaceResponseDTO result = raceService.createRace(authentication, createRaceRequest);
 
         assertNotNull(result);
         assertEquals("Human", result.name());
@@ -83,9 +98,10 @@ class RaceServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when race name exists")
     void testCreateRaceNameExists() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(raceRepository.existsByNameIgnoreCase("Human")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> raceService.createRace(createRaceRequest));
+        assertThrows(IllegalArgumentException.class, () -> raceService.createRace(authentication, createRaceRequest));
         verify(raceRepository, never()).save(any());
     }
 
@@ -126,9 +142,9 @@ class RaceServiceTest {
 
         when(raceRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(race, second)));
         when(raceMapper.toResponse(race)).thenReturn(raceResponseDTO);
-        when(raceMapper.toResponse(second)).thenReturn(new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null));
+        when(raceMapper.toResponse(second)).thenReturn(new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null));
 
-        Page<RaceResponseDTO> result = raceService.findAllRaces(PageRequest.of(0, 10));
+        Page<RaceResponseDTO> result = raceService.findAllRaces((Long) null, PageRequest.of(0, 10));
 
         assertEquals(2, result.getTotalElements());
     }
@@ -141,13 +157,14 @@ class RaceServiceTest {
         updatedRace.setId(1L);
         updatedRace.setName("Human Updated");
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(raceRepository.findById(1L)).thenReturn(Optional.of(race));
         when(raceRepository.findByNameIgnoreCase("Human Updated")).thenReturn(Optional.empty());
         when(raceMapper.toEntity(updateRequest, race)).thenReturn(updatedRace);
         when(raceRepository.save(any(Race.class))).thenReturn(updatedRace);
-        when(raceMapper.toResponse(updatedRace)).thenReturn(new RaceResponseDTO(1L, "Human Updated", "Updated description", 2, 1, 0, 0, 0, 1, null, null));
+        when(raceMapper.toResponse(updatedRace)).thenReturn(new RaceResponseDTO(1L, "Human Updated", "Updated description", 2, 1, 0, 0, 0, 1, null, null, null));
 
-        RaceResponseDTO result = raceService.updateRace(1L, updateRequest);
+        RaceResponseDTO result = raceService.updateRace(authentication, 1L, updateRequest);
 
         assertNotNull(result);
         assertEquals("Human Updated", result.name());
@@ -162,18 +179,20 @@ class RaceServiceTest {
         anotherRace.setId(2L);
         anotherRace.setName("Elf");
 
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(raceRepository.findById(1L)).thenReturn(Optional.of(race));
         when(raceRepository.findByNameIgnoreCase("Elf")).thenReturn(Optional.of(anotherRace));
 
-        assertThrows(IllegalArgumentException.class, () -> raceService.updateRace(1L, updateRequest));
+        assertThrows(IllegalArgumentException.class, () -> raceService.updateRace(authentication, 1L, updateRequest));
     }
 
     @Test
     @DisplayName("Should delete race successfully")
     void testDeleteRaceSuccess() {
+        when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(masterUser);
         when(raceRepository.findById(1L)).thenReturn(Optional.of(race));
 
-        raceService.deleteRace(1L);
+        raceService.deleteRace(authentication, 1L);
 
         verify(raceRepository, times(1)).delete(race);
     }
@@ -183,7 +202,7 @@ class RaceServiceTest {
     void testDeleteRaceNotFound() {
         when(raceRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> raceService.deleteRace(1L));
+        assertThrows(ResourceNotFoundException.class, () -> raceService.deleteRace(authentication, 1L));
     }
 }
 

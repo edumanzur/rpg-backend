@@ -80,7 +80,7 @@ class StatusMechanicsIntegrationTest {
         master.setUsername("master-status");
         master.setEmail("master-status@example.com");
         master.setPassword("secret");
-        master.setRole(Role.MASTER);
+        master.setRole(Role.PLAYER);
         master = userRepository.save(master);
 
         User player = new User();

@@ -6,6 +6,11 @@ import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellRequest;
 import com.eduardo.rpg.AbilitySpell.DTO.AbilitySpellResponseDTO;
 import com.eduardo.rpg.AbilitySpell.Requirement.AbilityRequirement;
 import com.eduardo.rpg.AbilitySpell.Repository.AbilitySpellRepository;
+import com.eduardo.rpg.Character.Character;
+import com.eduardo.rpg.Character.Repository.CharacterRepository;
+import com.eduardo.rpg.security.AccessControlService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.AccessDeniedException;
 import com.eduardo.rpg.CharacterClass.Repository.CharacterClassRepository;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
 import com.eduardo.rpg.common.RequirementMapperHelper;
@@ -24,9 +29,13 @@ public class AbilitySpellService {
     private final AbilitySpellRepository abilitySpellRepository;
     private final CharacterClassRepository characterClassRepository;
     private final AbilitySpellMapper abilitySpellMapper;
+    private final AccessControlService accessControlService;
+    private final CharacterRepository characterRepository;
 
     @Transactional
-    public AbilitySpellResponseDTO createAbilitySpell(AbilitySpellRequest dto) {
+    public AbilitySpellResponseDTO createAbilitySpell(Authentication authentication, AbilitySpellRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireGameContentWritePermission(authUser, dto.campaignId());
         validateNameAvailability(dto.name(), null);
 
         AbilitySpell abilitySpell = abilitySpellMapper.toEntity(dto);
@@ -43,15 +52,49 @@ public class AbilitySpellService {
     }
 
     @Transactional(readOnly = true)
+    public AbilitySpellResponseDTO findAbilitySpellById(Authentication authentication, Long id) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        AbilitySpell abilitySpell = abilitySpellRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+
+        if (accessControlService.isAdmin(authUser)) {
+            return abilitySpellMapper.toResponse(abilitySpell);
+        }
+
+        // Allow if any of the user's characters already has this ability or can use it
+        List<Character> userCharacters = characterRepository.findByUserId(authUser.getId());
+        boolean allowed = userCharacters.stream().anyMatch(c ->
+            (c.getAbilities() != null && c.getAbilities().stream().anyMatch(a -> a.getId().equals(abilitySpell.getId()))) ||
+            canCharacterUseAbility(c, abilitySpell)
+        );
+
+        if (allowed) return abilitySpellMapper.toResponse(abilitySpell);
+
+        throw new AccessDeniedException("Sem permissão para acessar esta habilidade/magia");
+    }
+
+    @Transactional(readOnly = true)
     public Page<AbilitySpellResponseDTO> findAllAbilitySpells(Pageable pageable) {
         return abilitySpellRepository.findAll(pageable)
             .map(abilitySpellMapper::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<AbilitySpellResponseDTO> findAllAbilitySpells(Authentication authentication, Long campaignId, Pageable pageable) {
+        if (campaignId != null) {
+            return abilitySpellRepository.findByCampaignId(campaignId, pageable)
+                .map(abilitySpellMapper::toResponse);
+        }
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        return abilitySpellRepository.findAll(pageable).map(abilitySpellMapper::toResponse);
+    }
+
     @Transactional
-    public AbilitySpellResponseDTO updateAbilitySpell(Long id, AbilitySpellRequest dto) {
+    public AbilitySpellResponseDTO updateAbilitySpell(Authentication authentication, Long id, AbilitySpellRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         AbilitySpell abilitySpell = abilitySpellRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, abilitySpell.getCampaignId());
 
         validateNameAvailability(dto.name(), id);
 
@@ -62,9 +105,11 @@ public class AbilitySpellService {
     }
 
     @Transactional
-    public void deleteAbilitySpell(Long id) {
+    public void deleteAbilitySpell(Authentication authentication, Long id) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         AbilitySpell abilitySpell = abilitySpellRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Habilidade/Magia não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, abilitySpell.getCampaignId());
         abilitySpellRepository.delete(abilitySpell);
     }
 
@@ -118,6 +163,58 @@ public class AbilitySpellService {
 
     private Integer normalize(Integer value) {
         return value != null ? value : 0;
+    }
+
+    // Helper: determine if a character can use an ability (same logic as CharacterService.validateAbilityUsage)
+    private boolean canCharacterUseAbility(Character character, AbilitySpell ability) {
+        if (character == null || ability == null) return false;
+
+        // If ability has no requirements, assume usable
+        if (ability.getRequirements() == null || ability.getRequirements().isEmpty()) return true;
+
+        for (var requirement : ability.getRequirements()) {
+            boolean meetsLevel = requirement.getMinLevel() == null || character.getLevel() >= requirement.getMinLevel();
+            boolean meetsStrength = requirement.getMinStrength() == null || getCharacterStat(character, "strength") >= requirement.getMinStrength();
+            boolean meetsDexterity = requirement.getMinDexterity() == null || getCharacterStat(character, "dexterity") >= requirement.getMinDexterity();
+            boolean meetsConstitution = requirement.getMinConstitution() == null || getCharacterStat(character, "constitution") >= requirement.getMinConstitution();
+            boolean meetsIntelligence = requirement.getMinIntelligence() == null || getCharacterStat(character, "intelligence") >= requirement.getMinIntelligence();
+            boolean meetsWisdom = requirement.getMinWisdom() == null || getCharacterStat(character, "wisdom") >= requirement.getMinWisdom();
+            boolean meetsCharisma = requirement.getMinCharisma() == null || getCharacterStat(character, "charisma") >= requirement.getMinCharisma();
+
+            boolean canUseForThisClass = character.getCharacterClass() != null && requirement.getRequiredClass() != null &&
+                character.getCharacterClass().getId().equals(requirement.getRequiredClass().getId()) &&
+                meetsLevel && meetsStrength && meetsDexterity && meetsConstitution && meetsIntelligence && meetsWisdom && meetsCharisma;
+
+            if (canUseForThisClass) return true;
+        }
+
+        return false;
+    }
+
+    private Integer getCharacterStat(Character character, String stat) {
+        if (character.getCharacterClass() == null) {
+            return 0;
+        }
+
+        int baseStat = 10; // D&D standard base stat
+        var charClass = character.getCharacterClass();
+        var race = character.getRace();
+
+        return switch (stat.toLowerCase()) {
+            case "strength" -> baseStat + (charClass.getStrengthBonus() != null ? charClass.getStrengthBonus() : 0) +
+                            (race != null && race.getStrengthBonus() != null ? race.getStrengthBonus() : 0);
+            case "dexterity" -> baseStat + (charClass.getDexterityBonus() != null ? charClass.getDexterityBonus() : 0) +
+                             (race != null && race.getDexterityBonus() != null ? race.getDexterityBonus() : 0);
+            case "constitution" -> baseStat + (charClass.getConstitutionBonus() != null ? charClass.getConstitutionBonus() : 0) +
+                               (race != null && race.getConstitutionBonus() != null ? race.getConstitutionBonus() : 0);
+            case "intelligence" -> baseStat + (charClass.getIntelligenceBonus() != null ? charClass.getIntelligenceBonus() : 0) +
+                               (race != null && race.getIntelligenceBonus() != null ? race.getIntelligenceBonus() : 0);
+            case "wisdom" -> baseStat + (charClass.getWisdomBonus() != null ? charClass.getWisdomBonus() : 0) +
+                          (race != null && race.getWisdomBonus() != null ? race.getWisdomBonus() : 0);
+            case "charisma" -> baseStat + (charClass.getCharismaBonus() != null ? charClass.getCharismaBonus() : 0) +
+                            (race != null && race.getCharismaBonus() != null ? race.getCharismaBonus() : 0);
+            default -> 0;
+        };
     }
 }
 

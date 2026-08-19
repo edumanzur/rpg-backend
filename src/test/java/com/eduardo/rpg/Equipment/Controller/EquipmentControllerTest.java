@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,6 +62,7 @@ class EquipmentControllerTest {
             0,
             0,
             0,
+            null,
             List.of(new EquipmentResponseDTO.RequirementDTO(1L, 1L, "Warrior", 16, 0, 0, 0, 0, 0)),
             null,
             null
@@ -71,7 +73,7 @@ class EquipmentControllerTest {
     @DisplayName("GET /equipments/{id} should return equipment successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindEquipmentByIdSuccess() throws Exception {
-        when(equipmentService.findEquipmentById(1L)).thenReturn(equipmentResponseDTO);
+        when(equipmentService.findEquipmentById(any(Authentication.class), eq(1L))).thenReturn(equipmentResponseDTO);
 
         mockMvc.perform(get("/equipments/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -80,14 +82,14 @@ class EquipmentControllerTest {
             .andExpect(jsonPath("$.type", is("WEAPON")))
             .andExpect(jsonPath("$.requirements", hasSize(1)));
 
-        verify(equipmentService, times(1)).findEquipmentById(1L);
+        verify(equipmentService, times(1)).findEquipmentById(any(Authentication.class), eq(1L));
     }
 
     @Test
     @DisplayName("GET /equipments/{id} should return 404 when equipment not found")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindEquipmentByIdNotFound() throws Exception {
-        when(equipmentService.findEquipmentById(1L)).thenThrow(new ResourceNotFoundException("Equipamento não encontrado!"));
+        when(equipmentService.findEquipmentById(any(Authentication.class), eq(1L))).thenThrow(new ResourceNotFoundException("Equipamento não encontrado!"));
 
         mockMvc.perform(get("/equipments/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -111,11 +113,12 @@ class EquipmentControllerTest {
             0,
             0,
             0,
+            null,
             List.of(),
             null,
             null
         );
-        when(equipmentService.findAllEquipments(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(equipmentResponseDTO, second)));
+        when(equipmentService.findAllEquipments(any(Authentication.class), eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(equipmentResponseDTO, second)));
 
         mockMvc.perform(get("/equipments?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -123,14 +126,14 @@ class EquipmentControllerTest {
             .andExpect(jsonPath("$.content[0].name", is("Long Sword")))
             .andExpect(jsonPath("$.content[1].name", is("Leather Armor")));
 
-        verify(equipmentService, times(1)).findAllEquipments(PageRequest.of(0, 10));
+        verify(equipmentService, times(1)).findAllEquipments(any(Authentication.class), eq((Long) null), eq(PageRequest.of(0, 10)));
     }
 
     @Test
     @DisplayName("POST /equipments should create equipment successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateEquipmentSuccess() throws Exception {
-        when(equipmentService.createEquipment(any())).thenReturn(equipmentResponseDTO);
+        when(equipmentService.createEquipment(any(Authentication.class), any())).thenReturn(equipmentResponseDTO);
 
         mockMvc.perform(post("/equipments")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -164,14 +167,14 @@ class EquipmentControllerTest {
             .andExpect(jsonPath("$.name", is("Long Sword")))
             .andExpect(jsonPath("$.requirements", hasSize(1)));
 
-        verify(equipmentService, times(1)).createEquipment(any());
+        verify(equipmentService, times(1)).createEquipment(any(Authentication.class), any());
     }
 
     @Test
     @DisplayName("POST /equipments should handle conflict")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateEquipmentConflict() throws Exception {
-        when(equipmentService.createEquipment(any())).thenThrow(new IllegalArgumentException("Já existe um equipamento com este nome"));
+        when(equipmentService.createEquipment(any(Authentication.class), any())).thenThrow(new IllegalArgumentException("Já existe um equipamento com este nome"));
 
         mockMvc.perform(post("/equipments")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -198,7 +201,7 @@ class EquipmentControllerTest {
     @DisplayName("PUT /equipments/{id} should update equipment successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateEquipmentSuccess() throws Exception {
-        when(equipmentService.updateEquipment(eq(1L), any())).thenReturn(equipmentResponseDTO);
+        when(equipmentService.updateEquipment(any(Authentication.class), eq(1L), any())).thenReturn(equipmentResponseDTO);
 
         mockMvc.perform(put("/equipments/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -220,19 +223,19 @@ class EquipmentControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name", is("Long Sword")));
 
-        verify(equipmentService, times(1)).updateEquipment(eq(1L), any());
+        verify(equipmentService, times(1)).updateEquipment(any(Authentication.class), eq(1L), any());
     }
 
     @Test
     @DisplayName("DELETE /equipments/{id} should delete equipment successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteEquipmentSuccess() throws Exception {
-        doNothing().when(equipmentService).deleteEquipment(1L);
+        doNothing().when(equipmentService).deleteEquipment(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/equipments/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        verify(equipmentService, times(1)).deleteEquipment(1L);
+        verify(equipmentService, times(1)).deleteEquipment(any(Authentication.class), eq(1L));
     }
 
     @Test
@@ -240,7 +243,7 @@ class EquipmentControllerTest {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteEquipmentNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Equipamento não encontrado!"))
-            .when(equipmentService).deleteEquipment(1L);
+            .when(equipmentService).deleteEquipment(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/equipments/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -252,6 +255,9 @@ class EquipmentControllerTest {
     @DisplayName("POST /equipments should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testCreateEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        when(equipmentService.createEquipment(any(Authentication.class), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(post("/equipments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -276,6 +282,10 @@ class EquipmentControllerTest {
     @DisplayName("PUT /equipments/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testUpdateEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        // Mock service to throw access denied for PLAYER role
+        doThrow(new org.springframework.security.access.AccessDeniedException("Sem permissão para atualizar este equipamento"))
+            .when(equipmentService).updateEquipment(any(), eq(1L), any());
+
         mockMvc.perform(put("/equipments/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -300,6 +310,10 @@ class EquipmentControllerTest {
     @DisplayName("DELETE /equipments/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testDeleteEquipmentWithPlayerRoleShouldForbidden() throws Exception {
+        // Mock service to throw access denied for PLAYER role
+        doThrow(new org.springframework.security.access.AccessDeniedException("Sem permissão para deletar este equipamento"))
+            .when(equipmentService).deleteEquipment(any(), eq(1L));
+
         mockMvc.perform(delete("/equipments/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
@@ -320,11 +334,12 @@ class EquipmentControllerTest {
             0,
             0,
             0,
+            null,
             List.of(),
             null,
             null
         );
-        when(equipmentService.findAllEquipments(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(equipmentResponseDTO, second)));
+        when(equipmentService.findAllEquipments(any(Authentication.class), eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(equipmentResponseDTO, second)));
 
         mockMvc.perform(get("/equipments?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())

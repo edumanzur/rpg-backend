@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface CharacterClassRepository extends JpaRepository<CharacterClass, Long> {
     Optional<CharacterClass> findByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCase(String name);
+    org.springframework.data.domain.Page<CharacterClass> findByCampaignId(Long campaignId, org.springframework.data.domain.Pageable pageable);
 }
 

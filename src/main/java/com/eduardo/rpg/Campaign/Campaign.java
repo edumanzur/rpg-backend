@@ -40,6 +40,17 @@ public class Campaign {
     @JoinColumn(name = "master_id", nullable = false)
     private User master;
 
+    @Column(name = "invite_code", nullable = false, unique = true, length = 20)
+    private String inviteCode;
+
+    @ManyToMany
+    @JoinTable(
+        name = "tb_campaign_players",
+        joinColumns = @JoinColumn(name = "campaign_id"),
+        inverseJoinColumns = @JoinColumn(name = "player_id")
+    )
+    private List<User> players = new ArrayList<>();
+
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Session> sessions;
 

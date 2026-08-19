@@ -75,7 +75,7 @@ public class SessionService {
     @Transactional(readOnly = true)
     public Page<SessionResponseDTO> findAllSessions(Authentication authentication, Pageable pageable) {
         var authUser = accessControlService.getAuthenticatedUser(authentication);
-        accessControlService.requireMasterOrAdmin(authUser);
+
 
         return sessionRepository.findAll(pageable)
             .map(sessionMapper::toResponse);

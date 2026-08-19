@@ -31,6 +31,7 @@ public class AbilitySpellMapper {
             abilitySpell.getCost(),
             abilitySpell.getCostType(),
             abilitySpell.getRequiredLevel(),
+            abilitySpell.getCampaignId(),
             requirements,
             abilitySpell.getCreatedAt(),
             abilitySpell.getUpdatedAt()
@@ -44,6 +45,7 @@ public class AbilitySpellMapper {
 
         AbilitySpell abilitySpell = new AbilitySpell();
         apply(dto.name(), dto.damage(), dto.effect(), dto.mainStatus(), dto.description(), dto.cost(), dto.costType(), dto.requiredLevel(), abilitySpell);
+        abilitySpell.setCampaignId(dto.campaignId());
         return abilitySpell;
     }
 

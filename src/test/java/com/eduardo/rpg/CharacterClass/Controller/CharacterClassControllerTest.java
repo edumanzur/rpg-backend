@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -49,7 +50,7 @@ class CharacterClassControllerTest {
 
     @BeforeEach
     void setUp() {
-        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null);
+        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null, null);
     }
 
     @Test
@@ -83,8 +84,8 @@ class CharacterClassControllerTest {
     @DisplayName("GET /character-classes should return all classes")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllCharacterClassesSuccess() throws Exception {
-        CharacterClassResponseDTO second = new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null);
-        when(characterClassService.findAllCharacterClasses(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(characterClassResponseDTO, second)));
+        CharacterClassResponseDTO second = new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null, null);
+        when(characterClassService.findAllCharacterClasses(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(characterClassResponseDTO, second)));
 
         mockMvc.perform(get("/character-classes?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -92,14 +93,14 @@ class CharacterClassControllerTest {
             .andExpect(jsonPath("$.content[0].name", is("Ranger")))
             .andExpect(jsonPath("$.content[1].name", is("Mage")));
 
-        verify(characterClassService, times(1)).findAllCharacterClasses(PageRequest.of(0, 10));
+        verify(characterClassService, times(1)).findAllCharacterClasses(eq((Long) null), eq(PageRequest.of(0, 10)));
     }
 
     @Test
     @DisplayName("POST /character-classes should create class successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateCharacterClassSuccess() throws Exception {
-        when(characterClassService.createCharacterClass(any())).thenReturn(characterClassResponseDTO);
+        when(characterClassService.createCharacterClass(any(Authentication.class), any())).thenReturn(characterClassResponseDTO);
 
         mockMvc.perform(post("/character-classes")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -119,14 +120,14 @@ class CharacterClassControllerTest {
             .andExpect(jsonPath("$.id", is(1)))
             .andExpect(jsonPath("$.name", is("Ranger")));
 
-        verify(characterClassService, times(1)).createCharacterClass(any());
+        verify(characterClassService, times(1)).createCharacterClass(any(Authentication.class), any());
     }
 
     @Test
     @DisplayName("POST /character-classes should handle conflict")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateCharacterClassConflict() throws Exception {
-        when(characterClassService.createCharacterClass(any())).thenThrow(new IllegalArgumentException("Já existe uma classe com este nome"));
+        when(characterClassService.createCharacterClass(any(Authentication.class), any())).thenThrow(new IllegalArgumentException("Já existe uma classe com este nome"));
 
         mockMvc.perform(post("/character-classes")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +151,7 @@ class CharacterClassControllerTest {
     @DisplayName("PUT /character-classes/{id} should update class successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateCharacterClassSuccess() throws Exception {
-        when(characterClassService.updateCharacterClass(eq(1L), any())).thenReturn(characterClassResponseDTO);
+        when(characterClassService.updateCharacterClass(any(Authentication.class), eq(1L), any())).thenReturn(characterClassResponseDTO);
 
         mockMvc.perform(put("/character-classes/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -169,19 +170,19 @@ class CharacterClassControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name", is("Ranger")));
 
-        verify(characterClassService, times(1)).updateCharacterClass(eq(1L), any());
+        verify(characterClassService, times(1)).updateCharacterClass(any(Authentication.class), eq(1L), any());
     }
 
     @Test
     @DisplayName("DELETE /character-classes/{id} should delete class successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteCharacterClassSuccess() throws Exception {
-        doNothing().when(characterClassService).deleteCharacterClass(1L);
+        doNothing().when(characterClassService).deleteCharacterClass(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/character-classes/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        verify(characterClassService, times(1)).deleteCharacterClass(1L);
+        verify(characterClassService, times(1)).deleteCharacterClass(any(Authentication.class), eq(1L));
     }
 
     @Test
@@ -189,7 +190,7 @@ class CharacterClassControllerTest {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteCharacterClassNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Classe não encontrada!"))
-            .when(characterClassService).deleteCharacterClass(1L);
+            .when(characterClassService).deleteCharacterClass(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/character-classes/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -201,18 +202,21 @@ class CharacterClassControllerTest {
     @DisplayName("POST /character-classes/{id}/abilities/{abilityId} should associate ability successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testAddAbilityToClassSuccess() throws Exception {
-        doNothing().when(characterClassService).addAbilityToClass(1L, 1L);
+        doNothing().when(characterClassService).addAbilityToClass(any(Authentication.class), eq(1L), eq(1L));
 
         mockMvc.perform(post("/character-classes/1/abilities/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        verify(characterClassService, times(1)).addAbilityToClass(1L, 1L);
+        verify(characterClassService, times(1)).addAbilityToClass(any(Authentication.class), eq(1L), eq(1L));
     }
 
     @Test
     @DisplayName("POST /character-classes should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testCreateCharacterClassWithPlayerRoleShouldForbidden() throws Exception {
+        when(characterClassService.createCharacterClass(any(Authentication.class), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(post("/character-classes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -234,6 +238,9 @@ class CharacterClassControllerTest {
     @DisplayName("PUT /character-classes/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testUpdateCharacterClassWithPlayerRoleShouldForbidden() throws Exception {
+        when(characterClassService.updateCharacterClass(any(Authentication.class), eq(1L), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(put("/character-classes/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -255,6 +262,9 @@ class CharacterClassControllerTest {
     @DisplayName("DELETE /character-classes/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testDeleteCharacterClassWithPlayerRoleShouldForbidden() throws Exception {
+        doThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"))
+            .when(characterClassService).deleteCharacterClass(any(Authentication.class), eq(1L));
+
         mockMvc.perform(delete("/character-classes/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }

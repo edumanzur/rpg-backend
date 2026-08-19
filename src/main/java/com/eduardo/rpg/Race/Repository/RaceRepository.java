@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface RaceRepository extends JpaRepository<Race, Long> {
     Optional<Race> findByNameIgnoreCase(String name);
     boolean existsByNameIgnoreCase(String name);
+    org.springframework.data.domain.Page<Race> findByCampaignId(Long campaignId, org.springframework.data.domain.Pageable pageable);
 }
 

@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -49,7 +50,7 @@ class RaceControllerTest {
 
     @BeforeEach
     void setUp() {
-        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null);
+        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null, null);
     }
 
     @Test
@@ -83,8 +84,8 @@ class RaceControllerTest {
     @DisplayName("GET /races should return all races")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllRacesSuccess() throws Exception {
-        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null);
-        when(raceService.findAllRaces(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
+        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null);
+        when(raceService.findAllRaces(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
 
         mockMvc.perform(get("/races?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -92,14 +93,14 @@ class RaceControllerTest {
             .andExpect(jsonPath("$.content[0].name", is("Human")))
             .andExpect(jsonPath("$.content[1].name", is("Elf")));
 
-        verify(raceService, times(1)).findAllRaces(PageRequest.of(0, 10));
+        verify(raceService, times(1)).findAllRaces(eq((Long) null), eq(PageRequest.of(0, 10)));
     }
 
     @Test
     @DisplayName("POST /races should create race successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateRaceSuccess() throws Exception {
-        when(raceService.createRace(any())).thenReturn(raceResponseDTO);
+        when(raceService.createRace(any(Authentication.class), any())).thenReturn(raceResponseDTO);
 
         mockMvc.perform(post("/races")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -119,14 +120,14 @@ class RaceControllerTest {
             .andExpect(jsonPath("$.id", is(1)))
             .andExpect(jsonPath("$.name", is("Human")));
 
-        verify(raceService, times(1)).createRace(any());
+        verify(raceService, times(1)).createRace(any(Authentication.class), any());
     }
 
     @Test
     @DisplayName("POST /races should handle conflict")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testCreateRaceConflict() throws Exception {
-        when(raceService.createRace(any())).thenThrow(new IllegalArgumentException("Já existe uma raça com este nome"));
+        when(raceService.createRace(any(Authentication.class), any())).thenThrow(new IllegalArgumentException("Já existe uma raça com este nome"));
 
         mockMvc.perform(post("/races")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +151,7 @@ class RaceControllerTest {
     @DisplayName("PUT /races/{id} should update race successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testUpdateRaceSuccess() throws Exception {
-        when(raceService.updateRace(eq(1L), any())).thenReturn(raceResponseDTO);
+        when(raceService.updateRace(any(Authentication.class), eq(1L), any())).thenReturn(raceResponseDTO);
 
         mockMvc.perform(put("/races/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -169,19 +170,19 @@ class RaceControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.name", is("Human")));
 
-        verify(raceService, times(1)).updateRace(eq(1L), any());
+        verify(raceService, times(1)).updateRace(any(Authentication.class), eq(1L), any());
     }
 
     @Test
     @DisplayName("DELETE /races/{id} should delete race successfully")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteRaceSuccess() throws Exception {
-        doNothing().when(raceService).deleteRace(1L);
+        doNothing().when(raceService).deleteRace(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/races/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());
 
-        verify(raceService, times(1)).deleteRace(1L);
+        verify(raceService, times(1)).deleteRace(any(Authentication.class), eq(1L));
     }
 
     @Test
@@ -189,7 +190,7 @@ class RaceControllerTest {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testDeleteRaceNotFound() throws Exception {
         doThrow(new ResourceNotFoundException("Raça não encontrada!"))
-            .when(raceService).deleteRace(1L);
+            .when(raceService).deleteRace(any(Authentication.class), eq(1L));
 
         mockMvc.perform(delete("/races/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
@@ -201,6 +202,9 @@ class RaceControllerTest {
     @DisplayName("POST /races should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testCreateRaceWithPlayerRoleShouldForbidden() throws Exception {
+        when(raceService.createRace(any(Authentication.class), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(post("/races")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -222,6 +226,9 @@ class RaceControllerTest {
     @DisplayName("PUT /races/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testUpdateRaceWithPlayerRoleShouldForbidden() throws Exception {
+        when(raceService.updateRace(any(Authentication.class), eq(1L), any()))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"));
+
         mockMvc.perform(put("/races/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -243,6 +250,9 @@ class RaceControllerTest {
     @DisplayName("DELETE /races/{id} should return 403 when user has PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testDeleteRaceWithPlayerRoleShouldForbidden() throws Exception {
+        doThrow(new org.springframework.security.access.AccessDeniedException("Apenas ADMIN pode gerenciar conteúdo global"))
+            .when(raceService).deleteRace(any(Authentication.class), eq(1L));
+
         mockMvc.perform(delete("/races/1").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isForbidden());
     }
@@ -251,8 +261,8 @@ class RaceControllerTest {
     @DisplayName("GET /races should be accessible with PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testGetRacesWithPlayerRoShouldSucceed() throws Exception {
-        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null);
-        when(raceService.findAllRaces(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
+        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null);
+        when(raceService.findAllRaces(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
 
         mockMvc.perform(get("/races?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())

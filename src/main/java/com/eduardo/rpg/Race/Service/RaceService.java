@@ -7,9 +7,11 @@ import com.eduardo.rpg.Race.DTO.RaceResponseDTO;
 import com.eduardo.rpg.Race.DTO.UpdateRaceRequest;
 import com.eduardo.rpg.Race.Repository.RaceRepository;
 import com.eduardo.rpg.exception.ResourceNotFoundException;
+import com.eduardo.rpg.security.AccessControlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,9 +21,13 @@ public class RaceService {
 
     private final RaceRepository raceRepository;
     private final RaceMapper raceMapper;
+    private final AccessControlService accessControlService;
 
     @Transactional
-    public RaceResponseDTO createRace(CreateRaceRequest dto) {
+    public RaceResponseDTO createRace(Authentication authentication, CreateRaceRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
+        accessControlService.requireGameContentWritePermission(authUser, dto.campaignId());
+
         if (raceRepository.existsByNameIgnoreCase(dto.name())) {
             throw new IllegalArgumentException("Já existe uma raça com este nome");
         }
@@ -43,15 +49,21 @@ public class RaceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RaceResponseDTO> findAllRaces(Pageable pageable) {
+    public Page<RaceResponseDTO> findAllRaces(Long campaignId, Pageable pageable) {
+        if (campaignId != null) {
+            return raceRepository.findByCampaignId(campaignId, pageable)
+                .map(raceMapper::toResponse);
+        }
         return raceRepository.findAll(pageable)
             .map(raceMapper::toResponse);
     }
 
     @Transactional
-    public RaceResponseDTO updateRace(Long id, UpdateRaceRequest dto) {
+    public RaceResponseDTO updateRace(Authentication authentication, Long id, UpdateRaceRequest dto) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         Race race = raceRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Raça não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, race.getCampaignId());
 
         raceRepository.findByNameIgnoreCase(dto.name())
             .filter(existing -> !existing.getId().equals(id))
@@ -65,9 +77,11 @@ public class RaceService {
     }
 
     @Transactional
-    public void deleteRace(Long id) {
+    public void deleteRace(Authentication authentication, Long id) {
+        var authUser = accessControlService.getAuthenticatedUser(authentication);
         Race race = raceRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Raça não encontrada!"));
+        accessControlService.requireGameContentWritePermission(authUser, race.getCampaignId());
         raceRepository.delete(race);
     }
 }

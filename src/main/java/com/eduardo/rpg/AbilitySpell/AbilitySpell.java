@@ -67,6 +67,9 @@ public class AbilitySpell {
     @ManyToMany(mappedBy = "abilities", fetch = FetchType.LAZY)
     private List<com.eduardo.rpg.CharacterClass.CharacterClass> classes = new ArrayList<>();
 
+    @Column(name = "campaign_id")
+    private Long campaignId;
+
     @OneToMany(mappedBy = "ability", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AbilityRequirement> requirements = new ArrayList<>();
 

@@ -15,6 +15,7 @@ public record AbilitySpellResponseDTO(
     String cost,
     CostType costType,
     Integer requiredLevel,
+    Long campaignId,
     List<RequirementDTO> requirements,
     LocalDateTime createdAt,
     LocalDateTime updatedAt

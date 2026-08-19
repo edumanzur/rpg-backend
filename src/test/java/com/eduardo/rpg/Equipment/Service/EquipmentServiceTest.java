@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +34,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import com.eduardo.rpg.User.Domains.User;
+import com.eduardo.rpg.User.Repository.UserRepository;
+import com.eduardo.rpg.enums.Role;
 
 @DisplayName("EquipmentService Unit Tests")
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +55,9 @@ class EquipmentServiceTest {
     @Mock
     private EquipmentMapper equipmentMapper;
 
+    @Mock
+    private com.eduardo.rpg.security.AccessControlService accessControlService;
+
     @InjectMocks
     private EquipmentService equipmentService;
 
@@ -54,6 +65,8 @@ class EquipmentServiceTest {
     private EquipmentResponseDTO equipmentResponseDTO;
     private CreateEquipmentRequest createEquipmentRequest;
     private CharacterClass warriorClass;
+    private Authentication authentication;
+    private User adminUser;
 
     @BeforeEach
     void setUp() {
@@ -86,6 +99,7 @@ class EquipmentServiceTest {
             0,
             0,
             0,
+            null,
             List.of(new EquipmentResponseDTO.RequirementDTO(1L, 1L, "Warrior", 16, 0, 0, 0, 0, 0)),
             null,
             null
@@ -102,8 +116,14 @@ class EquipmentServiceTest {
             0,
             0,
             0,
+            null,
             List.of(new CreateEquipmentRequest.RequirementRequest(1L, 16, 0, 0, 0, 0, 0))
         );
+        adminUser = new User(99L, "admin", "admin@example.com", "pass", Role.ADMIN, null, null);
+        authentication = new UsernamePasswordAuthenticationToken("admin", "pass", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        // Use lenient stub because not every test exercises access control; avoid UnnecessaryStubbingException
+        lenient().when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(adminUser);
+        lenient().when(accessControlService.isAdmin(adminUser)).thenReturn(true);
     }
 
     @Test
@@ -149,6 +169,7 @@ class EquipmentServiceTest {
             0,
             0,
             0,
+            null,
             List.of()
         );
 
@@ -162,7 +183,7 @@ class EquipmentServiceTest {
         when(equipmentRepository.findById(1L)).thenReturn(Optional.of(equipment));
         when(equipmentMapper.toResponse(equipment)).thenReturn(equipmentResponseDTO);
 
-        EquipmentResponseDTO result = equipmentService.findEquipmentById(1L);
+        EquipmentResponseDTO result = equipmentService.findEquipmentById(authentication, 1L);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
@@ -187,9 +208,9 @@ class EquipmentServiceTest {
 
         when(equipmentRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(equipment, second)));
         when(equipmentMapper.toResponse(equipment)).thenReturn(equipmentResponseDTO);
-        when(equipmentMapper.toResponse(second)).thenReturn(new EquipmentResponseDTO(2L, "Leather Armor", "Light armor", EquipmentType.ARMOR, null, 0, 1, 2, 0, 0, 0, List.of(), null, null));
+        when(equipmentMapper.toResponse(second)).thenReturn(new EquipmentResponseDTO(2L, "Leather Armor", "Light armor", EquipmentType.ARMOR, null, 0, 1, 2, 0, 0, 0, null, List.of(), null, null));
 
-        Page<EquipmentResponseDTO> result = equipmentService.findAllEquipments(PageRequest.of(0, 10));
+        Page<EquipmentResponseDTO> result = equipmentService.findAllEquipments(authentication, null, PageRequest.of(0, 10));
 
         assertEquals(2, result.getTotalElements());
     }
@@ -220,9 +241,10 @@ class EquipmentServiceTest {
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(warriorClass));
         when(equipmentMapper.toEntity(updateRequest, equipment)).thenReturn(updatedEquipment);
         when(equipmentRepository.save(any(Equipment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(equipmentMapper.toResponse(any(Equipment.class))).thenReturn(new EquipmentResponseDTO(1L, "Long Sword", "A sturdier sword", EquipmentType.WEAPON, "2d10", 3, 0, 0, 0, 0, 0, List.of(), null, null));
+        when(equipmentMapper.toResponse(any(Equipment.class))).thenReturn(new EquipmentResponseDTO(1L, "Long Sword", "A sturdier sword", EquipmentType.WEAPON, "2d10", 3, 0, 0, 0, 0, 0, null, List.of(), null, null));
 
-        EquipmentResponseDTO result = equipmentService.updateEquipment(1L, updateRequest);
+        // Call the authentication-aware update method. AccessControlService grants admin access above.
+        EquipmentResponseDTO result = equipmentService.updateEquipment(authentication, 1L, updateRequest);
 
         assertNotNull(result);
         assertEquals("Long Sword", result.name());
@@ -270,6 +292,7 @@ class EquipmentServiceTest {
             0,
             0,
             0,
+            null,
             List.of(new CreateEquipmentRequest.RequirementRequest(99L, 16, 0, 0, 0, 0, 0))
         );
 
@@ -285,7 +308,7 @@ class EquipmentServiceTest {
     void testDeleteEquipmentSuccess() {
         when(equipmentRepository.findById(1L)).thenReturn(Optional.of(equipment));
 
-        equipmentService.deleteEquipment(1L);
+        equipmentService.deleteEquipment(authentication, 1L);
 
         verify(equipmentRepository, times(1)).delete(equipment);
     }

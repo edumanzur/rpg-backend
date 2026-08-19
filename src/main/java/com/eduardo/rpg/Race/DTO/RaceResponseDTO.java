@@ -12,6 +12,7 @@ public record RaceResponseDTO(
     Integer intelligenceBonus,
     Integer wisdomBonus,
     Integer charismaBonus,
+    Long campaignId,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}
