@@ -75,7 +75,7 @@ class CampaignServiceTest {
         campaign.setInviteCode("ABC12345");
         campaign.setMaster(master);
         campaign.setStatus(true);
-        campaignResponseDTO = new CampaignResponseDTO(1L, "Epic Quest", "A grand adventure", "ABC12345", true, 1L, null, null);
+        campaignResponseDTO = new CampaignResponseDTO(1L, "Epic Quest", "A grand adventure", "ABC12345", true, 1L, "master", null, null);
         createCampaignRequest = new CreateCampaignRequest("Epic Quest", "A grand adventure", true);
         authentication = new UsernamePasswordAuthenticationToken("masteruser", "password", List.of(new SimpleGrantedAuthority("ROLE_MASTER")));
     }
@@ -187,7 +187,7 @@ class CampaignServiceTest {
         when(campaignRepository.existsByNameAndMasterIdAndIdNot("Epic Quest Updated", 1L, 1L)).thenReturn(false);
         when(campaignMapper.toEntity(updateRequest, campaign)).thenReturn(updatedCampaign);
         when(campaignRepository.save(any(Campaign.class))).thenReturn(updatedCampaign);
-        when(campaignMapper.toResponse(updatedCampaign)).thenReturn(new CampaignResponseDTO(1L, "Epic Quest Updated", "Updated adventure", "ABC12345", false, 1L, null, null));
+        when(campaignMapper.toResponse(updatedCampaign)).thenReturn(new CampaignResponseDTO(1L, "Epic Quest Updated", "Updated adventure", "ABC12345", false, 1L, "master", null, null));
 
         CampaignResponseDTO result = campaignService.updateCampaign(authentication, 1L, updateRequest);
 
