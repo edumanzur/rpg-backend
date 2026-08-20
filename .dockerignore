@@ -1,0 +1,9 @@
+target/
+.git/
+.gitignore
+.idea/
+*.iml
+*.log
+*.key
+*.md
+test_campaigns.ps1

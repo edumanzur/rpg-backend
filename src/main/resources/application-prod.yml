@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      # Prod never auto-migrates the schema; Flyway (below) owns migrations.
+      # Hibernate only validates that the entities match what's already there.
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+server:
+  # Koyeb (and most PaaS platforms) inject PORT and expect the app to listen on it.
+  port: ${PORT:8081}

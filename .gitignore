@@ -54,3 +54,6 @@ src/test/resources/application-local.yml
 logs/
 .DS_Store
 Thumbs.db
+
+# Local-only prod connection reference (never commit)
+secrets/neon-prod.env

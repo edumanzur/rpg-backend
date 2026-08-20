@@ -29,6 +29,19 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.http.HttpMethod;
 
+import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
@@ -37,11 +50,63 @@ import java.security.interfaces.RSAPublicKey;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    // Each property value may be either a Spring resource location
+    // (classpath:public.key, file:/path/to/key) used by local/dev, or the
+    // raw PEM text itself, used in prod where the key is injected via an
+    // env var (JWT_PUBLIC_KEY / JWT_PRIVATE_KEY) rather than baked into the
+    // image as a file. See resolveKeyMaterial() below for the detection.
     @Value("${jwt.public.key}")
-    private RSAPublicKey publicKey;
+    private String publicKeyProperty;
     @Value("${jwt.private.key}")
-    private RSAPrivateKey privateKey;
-    
+    private String privateKeyProperty;
+
+    private final ResourceLoader resourceLoader = new DefaultResourceLoader();
+
+    private RSAPublicKey publicKey() {
+        try {
+            byte[] der = decodePem(resolveKeyMaterial(publicKeyProperty));
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) keyFactory.generatePublic(new X509EncodedKeySpec(der));
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalStateException("Failed to load JWT public key", e);
+        }
+    }
+
+    private RSAPrivateKey privateKey() {
+        try {
+            byte[] der = decodePem(resolveKeyMaterial(privateKeyProperty));
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            return (RSAPrivateKey) keyFactory.generatePrivate(new PKCS8EncodedKeySpec(der));
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalStateException("Failed to load JWT private key", e);
+        }
+    }
+
+    // If the configured value looks like a resource location (classpath:,
+    // file:, or a URL), load it as a file (local/dev path, unchanged
+    // behavior). Otherwise treat the value itself as literal PEM text
+    // (prod path: JWT_PUBLIC_KEY / JWT_PRIVATE_KEY env vars holding the
+    // PEM content directly).
+    private String resolveKeyMaterial(String property) throws IOException {
+        String trimmed = property.trim();
+        if (trimmed.startsWith("-----BEGIN")) {
+            return trimmed;
+        }
+        Resource resource = resourceLoader.getResource(trimmed);
+        try (InputStream in = resource.getInputStream()) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private byte[] decodePem(String pem) {
+        String cleaned = pem
+                .replaceAll("-----BEGIN [A-Z ]+-----", "")
+                .replaceAll("-----END [A-Z ]+-----", "")
+                .replaceAll("\\s", "");
+        return Base64.getDecoder().decode(cleaned);
+    }
+
+
     //Criptografia
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -105,11 +170,17 @@ public class SecurityConfig {
         return converter;
     }
 
-    // Permite chamadas do frontend em http://localhost:8080 (perfil local / desenvolvimento)
+    // Permite chamadas do frontend na(s) origin(s) configurada(s). Em local,
+    // continua defaultando para http://localhost:8080 exatamente como antes;
+    // em prod é sobrescrito via APP_CORS_ALLOWED_ORIGINS (lista separada por
+    // vírgula) apontando para o domínio real do frontend.
+    @Value("${app.cors.allowed-origins:http://localhost:8080}")
+    private List<String> allowedOrigins;
+
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -120,12 +191,12 @@ public class SecurityConfig {
 
     @Bean
     JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(publicKey).build();
+        return NimbusJwtDecoder.withPublicKey(publicKey()).build();
     }
 
     @Bean
     JwtEncoder jwtEncoder() {
-        var jwk = new RSAKey.Builder(publicKey).privateKey(privateKey).build();
+        var jwk = new RSAKey.Builder(publicKey()).privateKey(privateKey()).build();
         var jwks = new ImmutableJWKSet<>(new JWKSet(jwk));
         return new NimbusJwtEncoder(jwks);
     }
