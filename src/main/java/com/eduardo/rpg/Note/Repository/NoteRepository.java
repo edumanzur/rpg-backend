@@ -12,5 +12,7 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
 
     List<Note> findByCampaignId(Long campaignId);
 
+    List<Note> findByCampaignIdAndAuthorId(Long campaignId, Long authorId);
+
     Optional<Note> findByIdAndCampaignId(Long id, Long campaignId);
 }

@@ -74,17 +74,18 @@ class NoteServiceTest {
         note.setTitle("Plan");
         note.setContent("Secret content");
         note.setCampaign(campaign);
+        note.setAuthor(master);
 
         authentication = new UsernamePasswordAuthenticationToken("masteruser", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
     }
 
     @Test
-    @DisplayName("Should list notes for a campaign")
+    @DisplayName("Should list only the requester's own notes for a campaign")
     void testFindNotesByCampaignId() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
-        when(noteRepository.findByCampaignId(1L)).thenReturn(List.of(note));
-        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, null, null));
+        when(noteRepository.findByCampaignIdAndAuthorId(1L, master.getId())).thenReturn(List.of(note));
+        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, master.getId(), null, null));
 
         List<NoteResponseDTO> result = noteService.findNotesByCampaignId(authentication, 1L);
 
@@ -92,17 +93,18 @@ class NoteServiceTest {
     }
 
     @Test
-    @DisplayName("Should create a campaign-wide note")
+    @DisplayName("Should create a note owned by its author")
     void testCreateNoteCampaignWide() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(noteRepository.save(any(Note.class))).thenReturn(note);
-        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, null, null));
+        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, master.getId(), null, null));
 
         NoteResponseDTO result = noteService.createNote(authentication, 1L, new CreateNoteRequest("Plan", "Secret content", null));
 
         assertNotNull(result);
         assertNull(result.sessionId());
+        assertEquals(master.getId(), result.authorId());
     }
 
     @Test
@@ -124,14 +126,28 @@ class NoteServiceTest {
     }
 
     @Test
-    @DisplayName("Should deny note creation for non-master")
+    @DisplayName("Should deny note creation for someone with no campaign access at all")
     void testCreateNoteDenied() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
-        doThrow(new AccessDeniedException("Sem permissão")).when(accessControlService).requireCampaignOwnerOrAdmin(master, campaign);
+        doThrow(new AccessDeniedException("Sem permissão")).when(accessControlService).requireCampaignViewPermission(master, campaign);
 
         assertThrows(AccessDeniedException.class, () -> noteService.createNote(
             authentication, 1L, new CreateNoteRequest("Plan", "Secret content", null)));
+    }
+
+    @Test
+    @DisplayName("Should deny editing someone else's note")
+    void testUpdateNoteDeniedForNonAuthor() {
+        User outsider = new User(2L, "outsider", "outsider@example.com", "password", Role.PLAYER, null, null);
+        Authentication outsiderAuth = new UsernamePasswordAuthenticationToken("outsider", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
+
+        when(accessControlService.getAuthenticatedUser(outsiderAuth)).thenReturn(outsider);
+        when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
+        doThrow(new AccessDeniedException("Sem permissão")).when(accessControlService).requireSameUserOrAdmin(outsider, master.getId());
+
+        assertThrows(AccessDeniedException.class, () -> noteService.updateNote(
+            outsiderAuth, 1L, new UpdateNoteRequest("Hacked", "content", null)));
     }
 
     @Test
@@ -140,7 +156,7 @@ class NoteServiceTest {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
         when(noteRepository.findById(1L)).thenReturn(Optional.of(note));
         when(noteRepository.save(any(Note.class))).thenReturn(note);
-        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Updated", "New content", 1L, null, null, null));
+        when(noteMapper.toResponse(note)).thenReturn(new NoteResponseDTO(1L, "Updated", "New content", 1L, null, master.getId(), null, null));
 
         NoteResponseDTO result = noteService.updateNote(authentication, 1L, new UpdateNoteRequest("Updated", "New content", null));
 

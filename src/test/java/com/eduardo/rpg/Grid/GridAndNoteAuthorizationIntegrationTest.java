@@ -116,18 +116,34 @@ class GridAndNoteAuthorizationIntegrationTest {
         assertThrows(AccessDeniedException.class, () -> combatGridService.updateToken(
             outsiderAuth, session.id(), token.id(), new UpdateGridTokenRequest(2, 2, "Goblin", "#ff0000", null)));
 
-        // outsider can read campaign notes (empty list, no exception)
+        // Notes are a personal journal now, private per-author (including
+        // the master's own — nobody else, not even the master, sees another
+        // member's notes). A campaign member with no notes yet sees an
+        // empty list, no exception — creating is allowed for anyone with
+        // campaign access, not master-only.
         List<NoteResponseDTO> notes = noteService.findNotesByCampaignId(outsiderAuth, campaign.id());
         assertTrue(notes.isEmpty());
 
-        // but cannot create a note in someone else's campaign
-        assertThrows(AccessDeniedException.class, () -> noteService.createNote(
-            outsiderAuth, campaign.id(), new CreateNoteRequest("Secret plan", "The dragon sleeps at noon", null)));
+        NoteResponseDTO outsiderNote = noteService.createNote(
+            outsiderAuth, campaign.id(), new CreateNoteRequest("My own notes", "Only I see this", null));
+        assertEquals(outsider.getId(), outsiderNote.authorId());
 
-        // master can create a note, and it's visible to the outsider on read
-        NoteResponseDTO note = noteService.createNote(masterAuth, campaign.id(), new CreateNoteRequest("Secret plan", "The dragon sleeps at noon", null));
-        List<NoteResponseDTO> notesAfter = noteService.findNotesByCampaignId(outsiderAuth, campaign.id());
-        assertEquals(1, notesAfter.size());
-        assertEquals(note.id(), notesAfter.get(0).id());
+        NoteResponseDTO masterNote = noteService.createNote(
+            masterAuth, campaign.id(), new CreateNoteRequest("Secret plan", "The dragon sleeps at noon", null));
+        assertEquals(master.getId(), masterNote.authorId());
+
+        // Each side sees only their own note, not the other's.
+        List<NoteResponseDTO> outsiderNotes = noteService.findNotesByCampaignId(outsiderAuth, campaign.id());
+        assertEquals(1, outsiderNotes.size());
+        assertEquals(outsiderNote.id(), outsiderNotes.get(0).id());
+
+        List<NoteResponseDTO> masterNotes = noteService.findNotesByCampaignId(masterAuth, campaign.id());
+        assertEquals(1, masterNotes.size());
+        assertEquals(masterNote.id(), masterNotes.get(0).id());
+
+        // and cannot edit/delete someone else's note
+        assertThrows(AccessDeniedException.class, () -> noteService.updateNote(
+            outsiderAuth, masterNote.id(), new com.eduardo.rpg.Note.DTO.UpdateNoteRequest("Hacked", "content", null)));
+        assertThrows(AccessDeniedException.class, () -> noteService.deleteNote(outsiderAuth, masterNote.id()));
     }
 }

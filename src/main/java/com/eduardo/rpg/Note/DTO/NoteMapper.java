@@ -15,6 +15,7 @@ public class NoteMapper {
             note.getContent(),
             note.getCampaign() != null ? note.getCampaign().getId() : null,
             note.getSession() != null ? note.getSession().getId() : null,
+            note.getAuthor() != null ? note.getAuthor().getId() : null,
             note.getCreatedAt(),
             note.getUpdatedAt()
         );

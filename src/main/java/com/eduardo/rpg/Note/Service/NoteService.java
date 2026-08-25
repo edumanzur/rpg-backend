@@ -30,12 +30,18 @@ public class NoteService {
     private final NoteMapper noteMapper;
     private final AccessControlService accessControlService;
 
+    // Every note is private to its author — including the master's own
+    // (this is a personal-journal feature, not a GM handout tool). Reads
+    // filter to authorId == the requester; anyone with campaign access can
+    // write their own notes, but only the author (or ADMIN) can edit/delete
+    // one, checked via requireSameUserOrAdmin against the note's authorId
+    // rather than campaign ownership.
     @Transactional(readOnly = true)
     public List<NoteResponseDTO> findNotesByCampaignId(Authentication authentication, Long campaignId) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
         Campaign campaign = getCampaignForRead(authUser, campaignId);
 
-        return noteRepository.findByCampaignId(campaign.getId())
+        return noteRepository.findByCampaignIdAndAuthorId(campaign.getId(), authUser.getId())
             .stream()
             .map(noteMapper::toResponse)
             .toList();
@@ -44,13 +50,14 @@ public class NoteService {
     @Transactional
     public NoteResponseDTO createNote(Authentication authentication, Long campaignId, CreateNoteRequest dto) {
         User authUser = accessControlService.getAuthenticatedUser(authentication);
-        Campaign campaign = getCampaignForWrite(authUser, campaignId);
+        Campaign campaign = getCampaignForRead(authUser, campaignId);
 
         Note note = new Note();
         note.setTitle(dto.title());
         note.setContent(dto.content());
         note.setCampaign(campaign);
         note.setSession(resolveSession(dto.sessionId(), campaign.getId()));
+        note.setAuthor(authUser);
 
         Note saved = noteRepository.save(note);
         return noteMapper.toResponse(saved);
@@ -62,7 +69,7 @@ public class NoteService {
         Note note = noteRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Anotação não encontrada!"));
 
-        accessControlService.requireCampaignOwnerOrAdmin(authUser, note.getCampaign());
+        accessControlService.requireSameUserOrAdmin(authUser, note.getAuthor() != null ? note.getAuthor().getId() : null);
 
         note.setTitle(dto.title());
         note.setContent(dto.content());
@@ -78,7 +85,7 @@ public class NoteService {
         Note note = noteRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Anotação não encontrada!"));
 
-        accessControlService.requireCampaignOwnerOrAdmin(authUser, note.getCampaign());
+        accessControlService.requireSameUserOrAdmin(authUser, note.getAuthor() != null ? note.getAuthor().getId() : null);
         noteRepository.delete(note);
     }
 
@@ -102,10 +109,4 @@ public class NoteService {
         return campaign;
     }
 
-    private Campaign getCampaignForWrite(User authUser, Long campaignId) {
-        Campaign campaign = campaignRepository.findById(campaignId)
-            .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
-        accessControlService.requireCampaignOwnerOrAdmin(authUser, campaign);
-        return campaign;
-    }
 }

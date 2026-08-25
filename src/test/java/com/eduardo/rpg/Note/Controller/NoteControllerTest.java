@@ -38,7 +38,7 @@ class NoteControllerTest {
 
     @BeforeEach
     void setUp() {
-        noteResponseDTO = new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, null, null);
+        noteResponseDTO = new NoteResponseDTO(1L, "Plan", "Secret content", 1L, null, 1L, null, null);
     }
 
     @Test
@@ -70,7 +70,7 @@ class NoteControllerTest {
     @WithMockUser(username = "masteruser", roles = "PLAYER")
     @DisplayName("PUT /notes/{id} should update a note")
     void testUpdateNoteSuccess() throws Exception {
-        NoteResponseDTO updated = new NoteResponseDTO(1L, "Updated", "New content", 1L, null, null, null);
+        NoteResponseDTO updated = new NoteResponseDTO(1L, "Updated", "New content", 1L, null, 1L, null, null);
         when(noteService.updateNote(any(), eq(1L), any())).thenReturn(updated);
 
         mockMvc.perform(put("/notes/1")

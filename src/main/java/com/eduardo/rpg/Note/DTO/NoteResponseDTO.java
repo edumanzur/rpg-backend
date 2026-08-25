@@ -8,6 +8,7 @@ public record NoteResponseDTO(
     String content,
     Long campaignId,
     Long sessionId,
+    Long authorId,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}
