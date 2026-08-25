@@ -7,17 +7,17 @@ public record UpdateCharacterClassRequest(
     @NotBlank(message = "Class name is required")
     String name,
     String description,
-    @Min(value = 0, message = "Strength bonus cannot be negative")
+    @Min(value = -10, message = "Strength bonus cannot be less than -10")
     Integer strengthBonus,
-    @Min(value = 0, message = "Dexterity bonus cannot be negative")
+    @Min(value = -10, message = "Dexterity bonus cannot be less than -10")
     Integer dexterityBonus,
-    @Min(value = 0, message = "Constitution bonus cannot be negative")
+    @Min(value = -10, message = "Constitution bonus cannot be less than -10")
     Integer constitutionBonus,
-    @Min(value = 0, message = "Intelligence bonus cannot be negative")
+    @Min(value = -10, message = "Intelligence bonus cannot be less than -10")
     Integer intelligenceBonus,
-    @Min(value = 0, message = "Wisdom bonus cannot be negative")
+    @Min(value = -10, message = "Wisdom bonus cannot be less than -10")
     Integer wisdomBonus,
-    @Min(value = 0, message = "Charisma bonus cannot be negative")
+    @Min(value = -10, message = "Charisma bonus cannot be less than -10")
     Integer charismaBonus,
     String skillBonusName,
     @Min(value = 0, message = "Skill bonus cannot be negative")
