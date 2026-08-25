@@ -21,6 +21,8 @@ public class CharacterClassMapper {
             characterClass.getIntelligenceBonus(),
             characterClass.getWisdomBonus(),
             characterClass.getCharismaBonus(),
+            characterClass.getSkillBonusName(),
+            characterClass.getSkillBonusValue(),
             characterClass.getCampaignId(),
             characterClass.getCreatedAt(),
             characterClass.getUpdatedAt()
@@ -33,7 +35,7 @@ public class CharacterClassMapper {
         }
 
         CharacterClass characterClass = new CharacterClass();
-        apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), characterClass);
+        apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), dto.skillBonusName(), dto.skillBonusValue(), characterClass);
         characterClass.setCampaignId(dto.campaignId());
         return characterClass;
     }
@@ -43,11 +45,11 @@ public class CharacterClassMapper {
             return characterClass;
         }
 
-        apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), characterClass);
+        apply(dto.name(), dto.description(), dto.strengthBonus(), dto.dexterityBonus(), dto.constitutionBonus(), dto.intelligenceBonus(), dto.wisdomBonus(), dto.charismaBonus(), dto.skillBonusName(), dto.skillBonusValue(), characterClass);
         return characterClass;
     }
 
-    private void apply(String name, String description, Integer strengthBonus, Integer dexterityBonus, Integer constitutionBonus, Integer intelligenceBonus, Integer wisdomBonus, Integer charismaBonus, CharacterClass characterClass) {
+    private void apply(String name, String description, Integer strengthBonus, Integer dexterityBonus, Integer constitutionBonus, Integer intelligenceBonus, Integer wisdomBonus, Integer charismaBonus, String skillBonusName, Integer skillBonusValue, CharacterClass characterClass) {
         characterClass.setName(name);
         characterClass.setDescription(description);
         characterClass.setStrengthBonus(normalizeBonus(strengthBonus));
@@ -56,6 +58,8 @@ public class CharacterClassMapper {
         characterClass.setIntelligenceBonus(normalizeBonus(intelligenceBonus));
         characterClass.setWisdomBonus(normalizeBonus(wisdomBonus));
         characterClass.setCharismaBonus(normalizeBonus(charismaBonus));
+        characterClass.setSkillBonusName(skillBonusName != null && skillBonusName.isBlank() ? null : skillBonusName);
+        characterClass.setSkillBonusValue(normalizeBonus(skillBonusValue));
     }
 
     private Integer normalizeBonus(Integer value) {

@@ -34,7 +34,9 @@ public record CharacterResponseDTO(
         Integer constitutionBonus,
         Integer intelligenceBonus,
         Integer wisdomBonus,
-        Integer charismaBonus
+        Integer charismaBonus,
+        String skillBonusName,
+        Integer skillBonusValue
     ) {}
 
     public record ClassDTO(
@@ -46,7 +48,9 @@ public record CharacterResponseDTO(
         Integer constitutionBonus,
         Integer intelligenceBonus,
         Integer wisdomBonus,
-        Integer charismaBonus
+        Integer charismaBonus,
+        String skillBonusName,
+        Integer skillBonusValue
     ) {}
 }
 

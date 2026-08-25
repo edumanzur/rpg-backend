@@ -27,7 +27,9 @@ public class CharacterMapper {
                 character.getRace().getConstitutionBonus(),
                 character.getRace().getIntelligenceBonus(),
                 character.getRace().getWisdomBonus(),
-                character.getRace().getCharismaBonus()
+                character.getRace().getCharismaBonus(),
+                character.getRace().getSkillBonusName(),
+                character.getRace().getSkillBonusValue()
             ) : null;
 
         CharacterResponseDTO.ClassDTO classDTO = character.getCharacterClass() != null
@@ -40,7 +42,9 @@ public class CharacterMapper {
                 character.getCharacterClass().getConstitutionBonus(),
                 character.getCharacterClass().getIntelligenceBonus(),
                 character.getCharacterClass().getWisdomBonus(),
-                character.getCharacterClass().getCharismaBonus()
+                character.getCharacterClass().getCharismaBonus(),
+                character.getCharacterClass().getSkillBonusName(),
+                character.getCharacterClass().getSkillBonusValue()
             ) : null;
 
         return new CharacterResponseDTO(

@@ -151,10 +151,10 @@ class CharacterServiceTest {
         character.setDescription("A noble ranger");
 
         CharacterResponseDTO.RaceDTO raceDTO = new CharacterResponseDTO.RaceDTO(
-            1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1
+            1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, 0
         );
         CharacterResponseDTO.ClassDTO classDTO = new CharacterResponseDTO.ClassDTO(
-            1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0
+            1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, 0
         );
         characterResponseDTO = new CharacterResponseDTO(
             1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, List.of(), List.of(), null, null

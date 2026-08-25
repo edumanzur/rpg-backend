@@ -18,6 +18,9 @@ public record UpdateCharacterClassRequest(
     @Min(value = 0, message = "Wisdom bonus cannot be negative")
     Integer wisdomBonus,
     @Min(value = 0, message = "Charisma bonus cannot be negative")
-    Integer charismaBonus
+    Integer charismaBonus,
+    String skillBonusName,
+    @Min(value = 0, message = "Skill bonus cannot be negative")
+    Integer skillBonusValue
 ) {}
 

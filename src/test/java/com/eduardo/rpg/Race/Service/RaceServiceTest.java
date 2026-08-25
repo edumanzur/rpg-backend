@@ -74,8 +74,8 @@ class RaceServiceTest {
         race.setWisdomBonus(0);
         race.setCharismaBonus(1);
 
-        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null, null);
-        createRaceRequest = new CreateRaceRequest("Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null);
+        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, 0, null, null, null);
+        createRaceRequest = new CreateRaceRequest("Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, 0, null);
     }
 
     @Test
@@ -142,7 +142,7 @@ class RaceServiceTest {
 
         when(raceRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(race, second)));
         when(raceMapper.toResponse(race)).thenReturn(raceResponseDTO);
-        when(raceMapper.toResponse(second)).thenReturn(new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null));
+        when(raceMapper.toResponse(second)).thenReturn(new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, 0, null, null, null));
 
         Page<RaceResponseDTO> result = raceService.findAllRaces((Long) null, PageRequest.of(0, 10));
 
@@ -152,7 +152,7 @@ class RaceServiceTest {
     @Test
     @DisplayName("Should update race successfully")
     void testUpdateRaceSuccess() {
-        UpdateRaceRequest updateRequest = new UpdateRaceRequest("Human Updated", "Updated description", 2, 1, 0, 0, 0, 1);
+        UpdateRaceRequest updateRequest = new UpdateRaceRequest("Human Updated", "Updated description", 2, 1, 0, 0, 0, 1, null, 0);
         Race updatedRace = new Race();
         updatedRace.setId(1L);
         updatedRace.setName("Human Updated");
@@ -162,7 +162,7 @@ class RaceServiceTest {
         when(raceRepository.findByNameIgnoreCase("Human Updated")).thenReturn(Optional.empty());
         when(raceMapper.toEntity(updateRequest, race)).thenReturn(updatedRace);
         when(raceRepository.save(any(Race.class))).thenReturn(updatedRace);
-        when(raceMapper.toResponse(updatedRace)).thenReturn(new RaceResponseDTO(1L, "Human Updated", "Updated description", 2, 1, 0, 0, 0, 1, null, null, null));
+        when(raceMapper.toResponse(updatedRace)).thenReturn(new RaceResponseDTO(1L, "Human Updated", "Updated description", 2, 1, 0, 0, 0, 1, null, 0, null, null, null));
 
         RaceResponseDTO result = raceService.updateRace(authentication, 1L, updateRequest);
 
@@ -174,7 +174,7 @@ class RaceServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when updating to duplicate race name")
     void testUpdateRaceDuplicateName() {
-        UpdateRaceRequest updateRequest = new UpdateRaceRequest("Elf", "Updated description", 0, 2, 0, 0, 1, 0);
+        UpdateRaceRequest updateRequest = new UpdateRaceRequest("Elf", "Updated description", 0, 2, 0, 0, 1, 0, null, 0);
         Race anotherRace = new Race();
         anotherRace.setId(2L);
         anotherRace.setName("Elf");

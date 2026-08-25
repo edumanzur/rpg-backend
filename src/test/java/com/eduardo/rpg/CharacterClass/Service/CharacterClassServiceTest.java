@@ -87,8 +87,8 @@ class CharacterClassServiceTest {
         abilitySpell.setDamage("3d6");
         abilitySpell.setEffect("Explosive fire damage");
 
-        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null, null);
-        createCharacterClassRequest = new CreateCharacterClassRequest("Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null);
+        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, 0, null, null, null);
+        createCharacterClassRequest = new CreateCharacterClassRequest("Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, 0, null);
     }
 
     @Test
@@ -155,7 +155,7 @@ class CharacterClassServiceTest {
 
         when(characterClassRepository.findAll(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(characterClass, second)));
         when(characterClassMapper.toResponse(characterClass)).thenReturn(characterClassResponseDTO);
-        when(characterClassMapper.toResponse(second)).thenReturn(new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null, null));
+        when(characterClassMapper.toResponse(second)).thenReturn(new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, 0, null, null, null));
 
         Page<CharacterClassResponseDTO> result = characterClassService.findAllCharacterClasses((Long) null, PageRequest.of(0, 10));
 
@@ -165,7 +165,7 @@ class CharacterClassServiceTest {
     @Test
     @DisplayName("Should update class successfully")
     void testUpdateCharacterClassSuccess() {
-        UpdateCharacterClassRequest updateRequest = new UpdateCharacterClassRequest("Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0);
+        UpdateCharacterClassRequest updateRequest = new UpdateCharacterClassRequest("Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0, null, 0);
         CharacterClass updatedCharacterClass = new CharacterClass();
         updatedCharacterClass.setId(1L);
         updatedCharacterClass.setName("Ranger Updated");
@@ -175,7 +175,7 @@ class CharacterClassServiceTest {
         when(characterClassRepository.findByNameIgnoreCase("Ranger Updated")).thenReturn(Optional.empty());
         when(characterClassMapper.toEntity(updateRequest, characterClass)).thenReturn(updatedCharacterClass);
         when(characterClassRepository.save(any(CharacterClass.class))).thenReturn(updatedCharacterClass);
-        when(characterClassMapper.toResponse(updatedCharacterClass)).thenReturn(new CharacterClassResponseDTO(1L, "Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0, null, null, null));
+        when(characterClassMapper.toResponse(updatedCharacterClass)).thenReturn(new CharacterClassResponseDTO(1L, "Ranger Updated", "Updated description", 2, 2, 0, 0, 1, 0, null, 0, null, null, null));
 
         CharacterClassResponseDTO result = characterClassService.updateCharacterClass(authentication, 1L, updateRequest);
 
@@ -187,7 +187,7 @@ class CharacterClassServiceTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when updating to duplicate class name")
     void testUpdateCharacterClassDuplicateName() {
-        UpdateCharacterClassRequest updateRequest = new UpdateCharacterClassRequest("Mage", "Updated description", 0, 0, 0, 2, 1, 0);
+        UpdateCharacterClassRequest updateRequest = new UpdateCharacterClassRequest("Mage", "Updated description", 0, 0, 0, 2, 1, 0, null, 0);
         CharacterClass anotherClass = new CharacterClass();
         anotherClass.setId(2L);
         anotherClass.setName("Mage");

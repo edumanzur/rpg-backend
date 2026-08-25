@@ -12,6 +12,8 @@ public record CharacterClassResponseDTO(
     Integer intelligenceBonus,
     Integer wisdomBonus,
     Integer charismaBonus,
+    String skillBonusName,
+    Integer skillBonusValue,
     Long campaignId,
     LocalDateTime createdAt,
     LocalDateTime updatedAt

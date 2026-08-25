@@ -50,7 +50,7 @@ class CharacterClassControllerTest {
 
     @BeforeEach
     void setUp() {
-        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, null, null);
+        characterClassResponseDTO = new CharacterClassResponseDTO(1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, 0, null, null, null);
     }
 
     @Test
@@ -84,7 +84,7 @@ class CharacterClassControllerTest {
     @DisplayName("GET /character-classes should return all classes")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllCharacterClassesSuccess() throws Exception {
-        CharacterClassResponseDTO second = new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, null, null);
+        CharacterClassResponseDTO second = new CharacterClassResponseDTO(2L, "Mage", "Arcane specialist", 0, 0, 0, 2, 1, 0, null, 0, null, null, null);
         when(characterClassService.findAllCharacterClasses(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(characterClassResponseDTO, second)));
 
         mockMvc.perform(get("/character-classes?page=0&size=10").contentType(MediaType.APPLICATION_JSON))

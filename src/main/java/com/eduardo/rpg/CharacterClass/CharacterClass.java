@@ -62,6 +62,12 @@ public class CharacterClass {
     @Column(name = "charisma_bonus", nullable = false)
     private Integer charismaBonus = 0;
 
+    @Column(name = "skill_bonus_name", length = 50)
+    private String skillBonusName;
+
+    @Column(name = "skill_bonus_value", nullable = false)
+    private Integer skillBonusValue = 0;
+
     @OneToMany(mappedBy = "characterClass", fetch = FetchType.LAZY)
     private List<Character> characters = new ArrayList<>();
 

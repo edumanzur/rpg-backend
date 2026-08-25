@@ -50,7 +50,7 @@ class RaceControllerTest {
 
     @BeforeEach
     void setUp() {
-        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, null, null);
+        raceResponseDTO = new RaceResponseDTO(1L, "Human", "Versatile and resilient", 1, 1, 0, 0, 0, 1, null, 0, null, null, null);
     }
 
     @Test
@@ -84,7 +84,7 @@ class RaceControllerTest {
     @DisplayName("GET /races should return all races")
     @WithMockUser(username = "admin", roles = "ADMIN")
     void testFindAllRacesSuccess() throws Exception {
-        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null);
+        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, 0, null, null, null);
         when(raceService.findAllRaces(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
 
         mockMvc.perform(get("/races?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
@@ -261,7 +261,7 @@ class RaceControllerTest {
     @DisplayName("GET /races should be accessible with PLAYER role")
     @WithMockUser(username = "player", roles = "PLAYER")
     void testGetRacesWithPlayerRoShouldSucceed() throws Exception {
-        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, null, null);
+        RaceResponseDTO second = new RaceResponseDTO(2L, "Elf", "Graceful and wise", 0, 2, 0, 0, 1, 0, null, 0, null, null, null);
         when(raceService.findAllRaces(eq((Long) null), eq(PageRequest.of(0, 10)))).thenReturn(new PageImpl<>(List.of(raceResponseDTO, second)));
 
         mockMvc.perform(get("/races?page=0&size=10").contentType(MediaType.APPLICATION_JSON))
