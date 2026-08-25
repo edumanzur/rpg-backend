@@ -130,19 +130,27 @@ public class CampaignService {
             return campaignRepository.findAll(pageable).map(campaignMapper::toResponse);
         }
 
-        // Masters see campaigns they own; players see campaigns they participate in
-        // Use repository methods to fetch appropriate campaigns
+        // A user can master some campaigns and be a joined player in others at
+        // the same time, so both sets must be combined — returning only the
+        // mastered campaigns whenever that list is non-empty (the previous
+        // either/or logic) silently hid every campaign the user had joined via
+        // an invite code as soon as they also owned one campaign of their own.
         java.util.List<Campaign> masterCampaigns = campaignRepository.findByMasterId(authUser.getId());
-        if (masterCampaigns != null && !masterCampaigns.isEmpty()) {
-            return campaignRepository.findByMasterId(authUser.getId(), pageable).map(campaignMapper::toResponse);
-        }
+        java.util.List<Campaign> playerCampaigns = campaignRepository.findByPlayersContaining(authUser);
 
-        Page<Campaign> playerPage = campaignRepository.findByPlayersContaining(authUser, pageable);
-        if (playerPage == null) {
-            return new org.springframework.data.domain.PageImpl<>(new java.util.ArrayList<>(), pageable, 0);
-        }
+        java.util.LinkedHashMap<Long, Campaign> combined = new java.util.LinkedHashMap<>();
+        for (Campaign c : masterCampaigns) combined.put(c.getId(), c);
+        for (Campaign c : playerCampaigns) combined.putIfAbsent(c.getId(), c);
 
-        return playerPage.map(campaignMapper::toResponse);
+        java.util.List<Campaign> all = new java.util.ArrayList<>(combined.values());
+        int start = Math.min((int) pageable.getOffset(), all.size());
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        java.util.List<CampaignResponseDTO> pageContent = all.subList(start, end)
+            .stream()
+            .map(campaignMapper::toResponse)
+            .collect(java.util.stream.Collectors.toList());
+
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, all.size());
     }
 
     @Transactional

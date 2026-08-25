@@ -161,9 +161,9 @@ class CampaignServiceTest {
     @DisplayName("Should find all campaigns")
     void testFindAllCampaignsSuccess() {
         when(accessControlService.getAuthenticatedUser(authentication)).thenReturn(master);
-        // Master should see campaigns they own; mock master campaigns and the pageable repository method
+        // Master should see both campaigns they own and campaigns they've joined as a player
         when(campaignRepository.findByMasterId(master.getId())).thenReturn(List.of(campaign));
-        when(campaignRepository.findByMasterId(master.getId(), PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(campaign)));
+        when(campaignRepository.findByPlayersContaining(master)).thenReturn(List.of());
         when(campaignMapper.toResponse(campaign)).thenReturn(campaignResponseDTO);
 
         Page<CampaignResponseDTO> result = campaignService.findAllCampaigns(authentication, PageRequest.of(0, 10));
