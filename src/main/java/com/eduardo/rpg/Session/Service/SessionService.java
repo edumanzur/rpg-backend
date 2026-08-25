@@ -51,20 +51,30 @@ public class SessionService {
         return sessionMapper.toResponse(savedSession);
     }
 
+    // Reads are gated by campaign *view* permission (master, player, or
+    // admin) — writes below stay master/admin-only via getMasterCampaign /
+    // ensureMasterOwnsCampaign. These two used to also require master,
+    // which meant a regular campaign player could never list or open a
+    // session at all (contradicting this file's own documented intent —
+    // see CLAUDE.md's "GET /sessions/campaign/{id} is the one everyone with
+    // campaign access should actually call"). Caught via real end-to-end
+    // testing, not by the (green) test suite.
     @Transactional(readOnly = true)
     public SessionResponseDTO findSessionById(Authentication authentication, Long id) {
         var authUser = accessControlService.getAuthenticatedUser(authentication);
         Session session = sessionRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Sessão não encontrada!"));
 
-        ensureMasterOwnsCampaign(authUser, session.getCampaign());
+        accessControlService.requireCampaignViewPermission(authUser, session.getCampaign());
         return sessionMapper.toResponse(session);
     }
 
     @Transactional(readOnly = true)
     public List<SessionResponseDTO> findSessionsByCampaignId(Authentication authentication, Long campaignId) {
         var authUser = accessControlService.getAuthenticatedUser(authentication);
-        Campaign campaign = getMasterCampaign(authUser, campaignId);
+        Campaign campaign = campaignRepository.findById(campaignId)
+            .orElseThrow(() -> new ResourceNotFoundException("Campanha não encontrada!"));
+        accessControlService.requireCampaignViewPermission(authUser, campaign);
 
         return sessionRepository.findByCampaignId(campaign.getId())
             .stream()

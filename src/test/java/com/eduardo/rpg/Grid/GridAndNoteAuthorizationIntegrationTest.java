@@ -84,6 +84,23 @@ class GridAndNoteAuthorizationIntegrationTest {
         SessionResponseDTO session = sessionService.createSession(masterAuth,
             new CreateSessionRequest("Session 1", "The story begins", null, campaign.id(), List.of()));
 
+        // A regular campaign player must be able to read a session and the
+        // campaign's session list (findSessionById / findSessionsByCampaignId
+        // used to require *campaign ownership*, not just view access, so a
+        // real player got 403 opening any session at all — caught via
+        // manual end-to-end testing of the session detail page, not by the
+        // pre-existing test suite, since those tests fully mock
+        // AccessControlService and never exercise the real permission call).
+        SessionResponseDTO readById = sessionService.findSessionById(outsiderAuth, session.id());
+        assertEquals(session.id(), readById.id());
+
+        List<SessionResponseDTO> campaignSessions = sessionService.findSessionsByCampaignId(outsiderAuth, campaign.id());
+        assertEquals(1, campaignSessions.size());
+        assertEquals(session.id(), campaignSessions.get(0).id());
+
+        // but still can't write to it
+        assertThrows(AccessDeniedException.class, () -> sessionService.deleteSession(outsiderAuth, session.id()));
+
         // outsider (not master, not a campaign player) can read the auto-created grid
         CombatGridResponseDTO grid = combatGridService.getGrid(outsiderAuth, session.id());
         assertNotNull(grid);
