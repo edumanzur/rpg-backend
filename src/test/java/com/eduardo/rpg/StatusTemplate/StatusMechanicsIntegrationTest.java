@@ -126,7 +126,8 @@ class StatusMechanicsIntegrationTest {
             Gender.MALE,
             campaignId,
             1,
-            "A hero"
+            "A hero",
+            10, 10, 10, 10, 10, 10
         );
 
         CharacterResponseDTO characterResponse = characterService.createCharacter(playerAuth, player.getId(), createCharacterRequest);

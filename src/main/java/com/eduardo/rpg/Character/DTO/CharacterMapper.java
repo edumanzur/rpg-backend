@@ -57,6 +57,12 @@ public class CharacterMapper {
             character.getLevel(),
             character.getExperience(),
             character.getDescription(),
+            character.getStrengthScore(),
+            character.getDexterityScore(),
+            character.getConstitutionScore(),
+            character.getIntelligenceScore(),
+            character.getWisdomScore(),
+            character.getCharismaScore(),
             character.getUser() != null ? character.getUser().getId() : null,
             character.getCampaign() != null ? character.getCampaign().getId() : null,
             character.getEquipments().stream().map(equipmentMapper::toResponse).toList(),
@@ -76,6 +82,12 @@ public class CharacterMapper {
         character.setLevel(dto.level() != null ? dto.level() : 1);
         character.setExperience(0);
         character.setDescription(dto.description());
+        character.setStrengthScore(normalizeScore(dto.strengthScore()));
+        character.setDexterityScore(normalizeScore(dto.dexterityScore()));
+        character.setConstitutionScore(normalizeScore(dto.constitutionScore()));
+        character.setIntelligenceScore(normalizeScore(dto.intelligenceScore()));
+        character.setWisdomScore(normalizeScore(dto.wisdomScore()));
+        character.setCharismaScore(normalizeScore(dto.charismaScore()));
 
         return character;
     }
@@ -89,8 +101,18 @@ public class CharacterMapper {
         character.setLevel(dto.level());
         character.setExperience(dto.experience());
         character.setDescription(dto.description());
+        character.setStrengthScore(normalizeScore(dto.strengthScore()));
+        character.setDexterityScore(normalizeScore(dto.dexterityScore()));
+        character.setConstitutionScore(normalizeScore(dto.constitutionScore()));
+        character.setIntelligenceScore(normalizeScore(dto.intelligenceScore()));
+        character.setWisdomScore(normalizeScore(dto.wisdomScore()));
+        character.setCharismaScore(normalizeScore(dto.charismaScore()));
 
         return character;
+    }
+
+    private Integer normalizeScore(Integer value) {
+        return value != null ? value : 10;
     }
 }
 

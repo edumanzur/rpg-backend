@@ -80,6 +80,28 @@ public class Character {
     @Column(name = "experience", nullable = false)
     private Integer experience = 0;
 
+    // Base ability scores chosen at character creation (before race/class/
+    // equipment bonuses are added on top) — see AbilityScore computation in
+    // the frontend's dnd.ts. Default 10 (no bonus, no penalty) for characters
+    // created before this field existed.
+    @Column(name = "strength_score", nullable = false)
+    private Integer strengthScore = 10;
+
+    @Column(name = "dexterity_score", nullable = false)
+    private Integer dexterityScore = 10;
+
+    @Column(name = "constitution_score", nullable = false)
+    private Integer constitutionScore = 10;
+
+    @Column(name = "intelligence_score", nullable = false)
+    private Integer intelligenceScore = 10;
+
+    @Column(name = "wisdom_score", nullable = false)
+    private Integer wisdomScore = 10;
+
+    @Column(name = "charisma_score", nullable = false)
+    private Integer charismaScore = 10;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

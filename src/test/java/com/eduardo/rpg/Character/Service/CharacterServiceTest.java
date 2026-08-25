@@ -157,9 +157,9 @@ class CharacterServiceTest {
             1L, "Ranger", "Skilled wilderness fighter", 1, 2, 0, 0, 1, 0, null, 0
         );
         characterResponseDTO = new CharacterResponseDTO(
-            1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 1L, 1L, List.of(), List.of(), null, null
+            1L, "Aragorn", raceDTO, classDTO, CharacterRole.PLAYER, Gender.MALE, 10, 100, "A noble ranger", 10, 10, 10, 10, 10, 10, 1L, 1L, List.of(), List.of(), null, null
         );
-        createCharacterRequest = new CreateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 10, "A noble ranger");
+        createCharacterRequest = new CreateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 10, "A noble ranger", 10, 10, 10, 10, 10, 10);
         authentication = new UsernamePasswordAuthenticationToken("testuser", "password", List.of(new SimpleGrantedAuthority("ROLE_PLAYER")));
     }
 
@@ -299,7 +299,7 @@ class CharacterServiceTest {
     @Test
     @DisplayName("Should update character successfully")
     void testUpdateCharacterSuccess() {
-        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 11, 150, "Updated ranger");
+        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 1L, 11, 150, "Updated ranger", 10, 10, 10, 10, 10, 10);
         when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
         when(characterClassRepository.findById(1L)).thenReturn(Optional.of(characterClass));
@@ -345,7 +345,7 @@ class CharacterServiceTest {
         newTemplate.setDefaultValue(15);
         newCampaign.setStatusTemplates(List.of(newTemplate));
 
-        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 20L, 11, 150, "Updated ranger");
+        UpdateCharacterRequest updateRequest = new UpdateCharacterRequest("Aragorn", 1L, 1L, CharacterRole.PLAYER, Gender.MALE, 20L, 11, 150, "Updated ranger", 10, 10, 10, 10, 10, 10);
 
         when(characterRepository.findById(1L)).thenReturn(Optional.of(character));
         when(campaignRepository.findById(20L)).thenReturn(Optional.of(newCampaign));
